@@ -169,3 +169,36 @@
             tokens += reward;
             document.getElementById('tokens').innerText = tokens;
             cells[num-1].classList.
+add('correct');
+            canClick = false;
+            setTimeout(nextQuestion, 600);
+        } else {
+            attempts--;
+            document.getElementById('attempts').innerText = attempts;
+            cells[num-1].classList.add('wrong');
+            if (attempts <= 0) showResult("КОНЕЦ ИГРЫ");
+        }
+    }
+
+    function showResult(reason) {
+        clearInterval(timer);
+        canClick = false;
+        
+        // Прячем полоску, показываем текст ответа
+        document.getElementById('timer-container').style.display = 'none';
+        document.getElementById('answer-display').style.display = 'block';
+        document.getElementById('correct-val').innerText = currentAnswer;
+        
+        document.getElementById('start-btn').style.display = 'block';
+        document.getElementById('start-btn').innerText = "ЕЩЕ РАЗ";
+    }
+
+    function resetStyles() {
+        const cells = document.getElementsByClassName('cell');
+        for (let c of cells) c.classList.remove('correct', 'wrong');
+    }
+
+    init();
+</script>
+</body>
+</html>
