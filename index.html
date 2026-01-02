@@ -2,71 +2,78 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <!-- Это самая важная строка для мобильных устройств -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Math Blitz CFA</title>
+    <title>Math Blitz</title>
     <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation; }
         
         body { 
-            font-family: 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; padding: 10px;
+            font-family: 'Segoe UI', system-ui, sans-serif; 
+            margin: 0; padding: 5px;
             background: #1a1a2e; color: white; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            min-height: 100vh; /* Растягиваем на всю высоту экрана */
+            display: flex; flex-direction: column; align-items: center; 
+            height: 100dvh; overflow: hidden; /* Фиксируем высоту экрана */
         }
 
         #game-container { 
-            width: 100%; 
-            max-width: 500px; /* Ограничение для планшетов, на телефонах будет 100% */
-            background: #16213e; 
-            padding: 20px; 
-            border-radius: 20px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            width: 100%; max-width: 400px;
+            height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: space-between; /* Распределяем элементы по высоте */
+            padding: 10px 15px;
         }
 
         #status-bar { 
             display: flex; justify-content: space-between; 
-            margin-bottom: 20px; font-size: 22px; font-weight: bold; color: #00d2ff; 
+            font-size: 20px; font-weight: bold; color: #00d2ff;
+            height: 30px;
         }
 
         #question-box { 
-            font-size: 10vw; /* Размер шрифта зависит от ширины экрана */
-            max-font-size: 48px;
-            font-weight: bold; margin-bottom: 15px; 
+            font-size: 45px; font-weight: bold; 
             height: 80px; display: flex; align-items: center; justify-content: center; 
-            background: rgba(0,0,0,0.2); border-radius: 10px;
+            background: rgba(255,255,255,0.05); border-radius: 15px;
+            margin: 5px 0;
         }
 
-        #timer-container { width: 100%; height: 12px; background: #333; margin-bottom: 25px; border-radius: 6px; overflow: hidden; }
+        /* Контейнер для таймера ИЛИ ответа */
+        #timer-area { 
+            width: 100%; height: 40px; 
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        #timer-container { 
+            width: 100%; height: 10px; background: #333; 
+            border-radius: 5px; overflow: hidden; 
+        }
+
         #timer-bar { width: 100%; height: 100%; background: #e94560; }
 
+        #answer-display { 
+            font-size: 22px; font-weight: bold; color: #ff4757; 
+            display: none; /* Скрыт по умолчанию */
+        }
+
         #grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 15px; /* Увеличили расстояние между кнопками */
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+            flex-grow: 0;
         }
 
         .cell { 
-            aspect-ratio: 1 / 1; /* Кнопки всегда будут квадратными */
-            background: #0f3460; border: 2px solid #1a1a2e;
-            color: white; font-size: 40px; font-weight: bold;
-            cursor: pointer; border-radius: 15px;
+            aspect-ratio: 1 / 1; background: #16213e; border: 2px solid #0f3460;
+            color: white; font-size: 32px; font-weight: bold;
+            cursor: pointer; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            transition: transform 0.05s, background 0.1s;
-            outline: none;
         }
-
-        .cell:active { transform: scale(0.9); background: #e94560; }
-        .correct { background: #2ecc71 !important; border-color: #fff !important; }
+        .cell:active { background: #e94560; transform: scale(0.95); }
+        .correct { background: #2ecc71 !important; border-color: white !important; }
         .wrong { background: #e74c3c !important; }
 
-        #msg { height: 40px; margin-top: 15px; font-size: 20px; color: #00d2ff; }
-
         #start-btn { 
-            margin-top: 20px; width: 100%; padding: 20px; 
-            font-size: 24px; font-weight: bold;
-            background: #e94560; color: white; border: none; border-radius: 15px; 
+            width: 100%; padding: 15px; margin-top: 10px;
+            font-size: 22px; font-weight: bold;
+            background: #e94560; color: white; border: none; border-radius: 12px; 
             cursor: pointer; display: none;
         }
     </style>
@@ -79,10 +86,11 @@
         <span>❤️ <b id="attempts">3</b></span>
     </div>
 
-    <div id="question-box">ЗАГРУЗКА...</div>
+    <div id="question-box">ЗАГРУЗКА</div>
     
-    <div id="timer-container">
-        <div id="timer-bar"></div>
+    <div id="timer-area">
+        <div id="timer-container"><div id="timer-bar"></div></div>
+        <div id="answer-display">ОТВЕТ: <span id="correct-val"></span></div>
     </div>
 
     <div id="grid">
@@ -97,7 +105,6 @@
         <button class="cell" onclick="makeMove(9)">9</button>
     </div>
 
-    <div id="msg"></div>
     <button id="start-btn" onclick="nextQuestion()">ИГРАТЬ</button>
 </div>
 
@@ -107,13 +114,12 @@
 
     async function init() {
         try {
-            // Добавляем timestamp чтобы JSON не кэшировался при обновлениях
             const res = await fetch('questions.json?v=' + Date.now());
             allQuestions = await res.json();
-            document.getElementById('question-box').innerText = "ГОТОВ!";
+            document.getElementById('question-box').innerText = "ГОТОВ";
             document.getElementById('start-btn').style.display = 'block';
         } catch (e) {
-            document.getElementById('question-box').innerText = "ОШИБКА JSON";
+            document.getElementById('question-box').innerText = "ОШИБКА";
         }
     }
 
@@ -127,7 +133,10 @@
         document.getElementById('question-box').innerText = q.q;
         document.getElementById('attempts').innerText = attempts;
         document.getElementById('start-btn').style.display = 'none';
-        document.getElementById('msg').innerText = "";
+        
+        // Показываем таймер, скрываем ответ
+        document.getElementById('timer-container').style.display = 'block';
+        document.getElementById('answer-display').style.display = 'none';
         
         resetStyles();
         startTimer(q.t);
@@ -146,7 +155,7 @@
         }, 50);
 
         timer = setTimeout(() => {
-            gameOver("ВРЕМЯ ВЫШЛО!");
+            showResult("ВРЕМЯ ВЫШЛО");
         }, duration);
     }
 
@@ -159,34 +168,4 @@
             let reward = [0, 1, 5, 10][attempts];
             tokens += reward;
             document.getElementById('tokens').innerText = tokens;
-            cells[num-1].classList.add('correct');
-            canClick = false;
-            document.getElementById('msg').innerText = `+${reward} ТОКЕНОВ`;
-setTimeout(nextQuestion, 800);
-        } else {
-            attempts--;
-            document.getElementById('attempts').innerText = attempts;
-            cells[num-1].classList.add('wrong');
-            if (attempts <= 0) gameOver("КОНЕЦ ИГРЫ!");
-        }
-    }
-
-    function gameOver(txt) {
-        clearInterval(timer);
-        canClick = false;
-        document.getElementById('msg').innerText = txt + " ОТВЕТ: " + currentAnswer;
-        document.getElementById('start-btn').style.display = 'block';
-        document.getElementById('start-btn').innerText = "ЕЩЕ РАЗ";
-    }
-
-    function resetStyles() {
-        const cells = document.getElementsByClassName('cell');
-        for (let c of cells) c.classList.remove('correct', 'wrong');
-    }
-
-    init();
-</script>
-</body>
-</html>
-
-
+            cells[num-1].classList.
