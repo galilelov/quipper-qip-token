@@ -12,25 +12,24 @@
         #status-bar { display: flex; justify-content: space-between; font-size: 20px; font-weight: bold; color: #00d2ff; }
         #set-info { text-align: center; color: #e94560; font-size: 14px; }
         
-        #question-box { min-height: 120px; background: rgba(255,255,255,0.05); border-radius: 20px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 26px; font-weight: bold; padding: 15px; border: 1px solid rgba(255,255,255,0.1); }
-        .bonus-q { font-size: 18px; color: #00d2ff; }
+        #question-box { min-height: 120px; background: rgba(255,255,255,0.05); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 26px; font-weight: bold; padding: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .bonus-q { font-size: 18px; color: #00d2ff; margin-top: 10px; }
 
         #timer-area { width: 100%; height: 10px; }
         #timer-container { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: #e94560; }
 
         #grid, #bonus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .cell { aspect-ratio: 1 / 1; background: #16213e; border: 2px solid #0f3460; color: white; font-size: 32px; font-weight: bold; border-radius: 18px; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; }
+        .cell { aspect-ratio: 1 / 1; background: #16213e; border: 2px solid #0f3460; color: white; font-size: 32px; font-weight: bold; border-radius: 18px; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; border: none; outline: none; }
         .cell:active { transform: scale(0.9); background: #0f3460; }
-        .comp-btn { font-size: 40px; color: #e94560; border-color: #e94560; }
+        .comp-btn { font-size: 40px; color: #e94560; border: 2px solid #e94560; background: #1a1a2e; border-radius: 50%; }
         
-        .correct { background: #2ecc71 !important; border-color: white !important; }
+        .correct { background: #2ecc71 !important; }
         .wrong { background: #e74c3c !important; }
 
         #start-btn { width: 100%; padding: 25px; font-size: 24px; font-weight: bold; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3); }
-        
         .combo-dots { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
-        .dot { width: 12px; height: 12px; background: #333; border-radius: 50%; }
+        .dot { width: 12px; height: 12px; background: #333; border-radius: 50%; transition: 0.3s; }
         .dot.active { background: #00d2ff; box-shadow: 0 0 10px #00d2ff; }
     </style>
 </head>
@@ -75,7 +74,7 @@
 
 <script>
     let tokens = 0, lives = 18, setProgress = 0, combo = 0;
-    let currentQuestionIndex = 0; // Глобальная переменная
+    let currentQuestionIndex = 0;
     let currentAnswer, timer, canClick = false, isBonus = false, bonusStep = 0, bonusAnswer = '';
     let allQuestions = [];
 
@@ -85,7 +84,7 @@
             allQuestions = await res.json();
             document.getElementById('question-box').innerText = "ГОТОВ";
             document.getElementById('start-btn').style.display = 'block';
-        } catch (e) { document.getElementById('question-box').innerText = "ОШИБКА ЗАГРУЗКИ"; }
+        } catch (e) { document.getElementById('question-box').innerText = "ОШИБКА JSON"; }
     }
 
     function startNewSet() {
@@ -106,15 +105,11 @@
         canClick = false;
         resetStyles();
         
-        // Берем вопрос по порядку из паттерна
         const q = allQuestions[currentQuestionIndex];
         currentAnswer = q.a;
         
-        // Лимиты времени по вашему запросу: 3, 6, 9 сек
-        let timeLimit = q.t; // Используем t напрямую из сгенерированного JSON
-
         document.getElementById('question-box').innerText = q.q;
-        startTimer(timeLimit);
+        startTimer(q.t);
         setTimeout(() => { canClick = true; }, 200);
     }
 
@@ -136,7 +131,7 @@
             if (currentQuestionIndex >= allQuestions.length) currentQuestionIndex = 0;
 
             updateUI();
-            setTimeout(nextQuestion, 500);
+            setTimeout(nextQuestion, 400);
         } else {
             tokens = Math.max(0, tokens - 1);
             lives--;
@@ -164,23 +159,16 @@
             return;
         }
         
-        // Берем один легкий и один сложный для сравнения
-        const q1 = allQuestions[Math.floor(Math.random() * 2000)]; 
-        const q2 = allQuestions[allQuestions.length - 1 - Math.floor(random(0, 2000))];
-        
-        // Исправленный выбор через .a
-        const v1 = q1.a;
-        const v2 = (allQuestions[currentQuestionIndex + 8] || q1).a; // или просто рандомный сложный
-
-        const qA = allQuestions[Math.floor(Math.random() * 500)]; // Easy
-        const qB = allQuestions[allQuestions.length - 1 - Math.floor(Math.random() * 500)]; // Hard
+        // Берем один легкий (из начала базы) и один сложный (из конца базы)
+        const qA = allQuestions[Math.floor(Math.random() * 1000)]; 
+        const qB = allQuestions[allQuestions.length - 1 - Math.floor(Math.random() * 1000)];
 
         if (qA.a < qB.a) bonusAnswer = '<';
         else if (qA.a > qB.a) bonusAnswer = '>';
         else bonusAnswer = '=';
 
         document.getElementById('question-box').innerHTML = `
-            <div style="font-size:16px; color:#00d2ff">БОНУС ${bonusStep+1}/3</div>
+            <div style="font-size:16px; color:#00d2ff">БОНУСНЫЙ ТУР ${bonusStep+1}/3</div>
             <div class="bonus-q">${qA.q} <span style="color:#e94560">?</span> ${qB.q}</div>
         `;
         startTimer(9000);
@@ -194,7 +182,7 @@
             bonusStep++;
             nextBonusTask();
         } else {
-            alert("ОШИБКА В БОНУСЕ!");
+            alert("ОШИБКА! БОНУС ПОТЕРЯН");
             startNewSet();
         }
     }
@@ -203,12 +191,18 @@
         clearInterval(timer);
         const bar = document.getElementById('timer-bar');
         bar.style.transition = 'none'; bar.style.width = '100%';
-        setTimeout(() => { bar.style.transition = `width ${duration}ms linear`; bar.style.width = '0%'; }, 50);
+        setTimeout(() => { 
+            bar.style.transition = `width ${duration}ms linear`; 
+            bar.style.width = '0%'; 
+        }, 50);
+        
         timer = setTimeout(() => { 
-            if(isBonus) gameOver("ВРЕМЯ ВЫШЛО");
+            if(isBonus) { alert("ВРЕМЯ ВЫШЛО!"); startNewSet(); }
             else { 
-                lives--; updateUI(); 
-                if(lives <= 0) gameOver("ВРЕМЯ ВЫШЛО"); else nextQuestion(); 
+                lives--; 
+                updateUI(); 
+                if(lives <= 0) gameOver("ВРЕМЯ ВЫШЛО"); 
+                else nextQuestion(); 
             }
         }, duration);
     }
@@ -233,12 +227,7 @@
         document.querySelectorAll('.cell').forEach(c => c.classList.remove('correct', 'wrong'));
     }
 
-    function random(min, max) { return Math.floor(Math.random(
-    ) * (max - min + 1) + min); }
-
     init();
 </script>
 </body>
 </html>
-
-
