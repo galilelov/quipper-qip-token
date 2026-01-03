@@ -19,16 +19,18 @@
         #timer-container { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: #e94560; }
 
-        #grid, #bonus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .cell { aspect-ratio: 1 / 1; background: #16213e; border: 2px solid #0f3460; color: white; font-size: 32px; font-weight: bold; border-radius: 18px; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; border: none; outline: none; }
+        /* Скрываем сетки по умолчанию */
+        #grid, #bonus-grid { display: none; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        
+        .cell { aspect-ratio: 1 / 1; background: #16213e; border: 2px solid #0f3460; color: white; font-size: 32px; font-weight: bold; border-radius: 18px; display: flex; align-items: center; justify-content: center; transition: transform 0.1s; outline: none; }
         .cell:active { transform: scale(0.9); background: #0f3460; }
         .comp-btn { font-size: 40px; color: #e94560; border: 2px solid #e94560; background: #1a1a2e; border-radius: 50%; }
         
         .correct { background: #2ecc71 !important; }
         .wrong { background: #e74c3c !important; }
 
-        #start-btn { width: 100%; padding: 25px; font-size: 24px; font-weight: bold; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3); }
-        .combo-dots { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+        #start-btn { width: 100%; padding: 25px; font-size: 24px; font-weight: bold; background: #e94560; color: white; border: none; border-radius: 20px; cursor: pointer; box-shadow: 0 10px 20px rgba(233, 69, 96, 0.3); display: none; }
+.combo-dots { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
         .dot { width: 12px; height: 12px; background: #333; border-radius: 50%; transition: 0.3s; }
         .dot.active { background: #00d2ff; box-shadow: 0 0 10px #00d2ff; }
     </style>
@@ -45,12 +47,13 @@
         <div id="combo" class="combo-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
     </div>
 
-    <div id="question-box">ЗАГРУЗКА</div>
+    <div id="question-box">ЗАГРУЗКА БАЗЫ...</div>
     
     <div id="timer-area">
         <div id="timer-container"><div id="timer-bar"></div></div>
     </div>
 
+    <!-- Цифровая сетка -->
     <div id="grid">
         <button class="cell" onclick="makeMove(1)">1</button>
         <button class="cell" onclick="makeMove(2)">2</button>
@@ -63,6 +66,7 @@
         <button class="cell" onclick="makeMove(9)">9</button>
     </div>
 
+    <!-- Бонусная сетка -->
     <div id="bonus-grid">
         <button class="cell comp-btn" onclick="makeBonusMove('<')">&lt;</button>
         <button class="cell comp-btn" onclick="makeBonusMove('=')">=</button>
@@ -82,7 +86,7 @@
         try {
             const res = await fetch('questions.json?v=' + Date.now());
             allQuestions = await res.json();
-            document.getElementById('question-box').innerText = "ГОТОВ";
+document.getElementById('question-box').innerText = "БАЗА ЗАГРУЖЕНА";
             document.getElementById('start-btn').style.display = 'block';
         } catch (e) { document.getElementById('question-box').innerText = "ОШИБКА JSON"; }
     }
@@ -92,9 +96,12 @@
         lives = 18;
         combo = 0;
         isBonus = false;
+        
+        // Переключаем видимость элементов
         document.getElementById('start-btn').style.display = 'none';
         document.getElementById('grid').style.display = 'grid';
         document.getElementById('bonus-grid').style.display = 'none';
+        
         updateUI();
         nextQuestion();
     }
@@ -124,8 +131,7 @@
             setProgress++;
             
             if (combo === 3) { tokens += 30; combo = 0; }
-            
-            cells[num-1].classList.add('correct');
+cells[num-1].classList.add('correct');
             
             currentQuestionIndex++;
             if (currentQuestionIndex >= allQuestions.length) currentQuestionIndex = 0;
@@ -159,7 +165,6 @@
             return;
         }
         
-        // Берем один легкий (из начала базы) и один сложный (из конца базы)
         const qA = allQuestions[Math.floor(Math.random() * 1000)]; 
         const qB = allQuestions[allQuestions.length - 1 - Math.floor(Math.random() * 1000)];
 
@@ -218,6 +223,8 @@
     function gameOver(txt) {
         clearInterval(timer);
         canClick = false;
+        document.getElementById('grid').style.display = 'none';
+        document.getElementById('bonus-grid').style.display = 'none';
         document.getElementById('question-box').innerText = txt;
         document.getElementById('start-btn').style.display = 'block';
         document.getElementById('start-btn').innerText = "ПОВТОРИТЬ СЕТ";
