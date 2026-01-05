@@ -160,25 +160,41 @@
     }
 
     function nextBonusTask() {
-        if (bonusStep >= 3) {
-            tokens += 1000; updateUI();
-            alert("CONGRATS! +1000 TOKENS");
-            startNewSet();
-            return;
-        }
-        // Pick one easy and one hard question for comparison
-        const qA = allQuestions[Math.floor(Math.random() * 500)];
-        const qB = allQuestions[allQuestions.length - 1 - Math.floor(Math.random() * 500)];
-        
-        bonusAnswer = qA.a < qB.a ? '<' : (qA.a > qB.a ? '>' : '=');
-        
-        document.getElementById('question-box').innerHTML = `
-            <div style="font-size:12px; color:#aaa">BONUS ROUND ${bonusStep+1}/3</div>
-            <div style="font-size:18px; color:#00d2ff; margin-top:5px; padding: 0 5px;">${qA.q} ? ${qB.q}</div>
-        `;
-        startTimer(9000); canClick = true;
+    if (bonusStep >= 3) {
+        tokens += 1000;
+        updateUI();
+        alert("CONGRATULATIONS! +1000 TOKENS");
+        startNewSet();
+        return;
     }
 
+    // Фильтруем базу: берем только Easy (3000ms) и только короткие (менее 8 символов)
+    const simpleQuestions = allQuestions.filter(item => item.t === 3000 && item.q.length < 8);
+    
+    // Если по какой-то причине база пуста, берем просто случайные
+    const source = simpleQuestions.length > 10 ? simpleQuestions : allQuestions;
+    
+    const qA = source[Math.floor(Math.random() * source.length)];
+    const qB = source[Math.floor(Math.random() * source.length)];
+
+    // Определяем правильный ответ
+    if (qA.a < qB.a) bonusAnswer = '<';
+    else if (qA.a > qB.a) bonusAnswer = '>';
+    else bonusAnswer = '=';
+
+    // Вывод на экран с выделенным знаком вопроса
+    document.getElementById('question-box').innerHTML = `
+        <div style="font-size:12px; color:#aaa; margin-bottom:5px; text-transform:uppercase;">Bonus Round ${bonusStep+1}/3</div>
+        <div class="bonus-q-container">
+            <div class="bonus-q-side">${qA.q}</div>
+            <div class="q-mark">?</div>
+            <div class="bonus-q-side">${qB.q}</div>
+        </div>
+    `;
+    
+    startTimer(9000); // 9 секунд на раздумья
+    canClick = true;
+}
     function makeBonusMove(sym) {
         if (!canClick) return;
         if (sym === bonusAnswer) { clearInterval(timer); bonusStep++; nextBonusTask(); }
@@ -224,3 +240,4 @@
 </script>
 </body>
 </html>
+
