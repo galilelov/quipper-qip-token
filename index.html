@@ -57,6 +57,18 @@
         .combo-dots { display: flex; justify-content: center; gap: 5px; margin-top: 5px; }
         .dot { width: 8px; height: 8px; background: #333; border-radius: 50%; }
         .dot.active { background: #00d2ff; box-shadow: 0 0 8px #00d2ff; }
+        .bonus-q-container { display: flex; align-items: center; justify-content: center; gap: 15px; width: 100%; }
+        .bonus-q-side { font-size: 22px; color: white; flex: 1; }
+        .q-mark { 
+            font-size: 40px; color: #e94560; font-weight: 900; 
+            text-shadow: 0 0 15px rgba(233, 69, 96, 0.5); 
+            animation: pulse 1.5s infinite; 
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -240,4 +252,5 @@
 </script>
 </body>
 </html>
+
 
