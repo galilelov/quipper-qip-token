@@ -116,6 +116,59 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co'
 const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'
 const supabase = createClient(supabaseUrl, supabaseKey)
+    let userSession = null;
+
+// 1. Авторизация (Анонимный вход)
+async function signIn() {
+    const { data, error } = await supabase.auth.signInAnonymously();
+    if (error) console.error("Login error:", error);
+    else {
+        userSession = data.user;
+        await loadUserData();
+    }
+}
+
+// 2. Загрузка данных игрока
+async function loadUserData() {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userSession.id)
+        .single();
+
+    if (data) {
+        tokens = data.tokens;
+        multiplier = data.multiplier;
+        currentQuestionIndex = data.last_index;
+        updateUI();
+    } else {
+        // Если профиля нет — создаем его
+        const urlParams = new URLSearchParams(window.location.search);
+        const refId = urlParams.get('ref');
+
+        await supabase.from('profiles').insert([
+            { id: userSession.id, tokens: 0, multiplier: 1, invited_by: refId }
+        ]);
+
+        if (refId) {
+            // Начисляем бонус пригласившему
+            await supabase.rpc('increment_referral', { referrer_id: refId });
+        }
+    }
+}
+
+// 3. Сохранение прогресса (вызывать после каждого сета или покупки)
+async function saveGameProgress() {
+    if (!userSession) return;
+    await supabase
+        .from('profiles')
+        .update({ 
+            tokens: tokens, 
+            last_index: currentQuestionIndex,
+            multiplier: multiplier
+        })
+        .eq('id', userSession.id);
+}
     let tokens = 0, lives = 12, setProgress = 0, combo = 0, currentQuestionIndex = 0;
     let currentAnswer, timer, canClick = false, isBonus = false, bonusStep = 0, bonusAnswer = '';
     let allQuestions = [];
@@ -260,6 +313,7 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 </script>
 </body>
 </html>
+
 
 
 
