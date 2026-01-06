@@ -116,54 +116,13 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co'
 const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'
 const supabase = createClient(supabaseUrl, supabaseKey)
-    let userId = null;
-let tokens = 0;
-
-async function testConnection() {
-    try {
-        console.log("1. Проверка авторизации...");
-        
-        // Попытка войти анонимно
-        const { data, error: authError } = await supabase.auth.signInAnonymously();
-        
-        if (authError) {
-            alert("Ошибка входа: " + authError.message);
-            return;
-        }
-
-        userId = data.user.id;
-        console.log("2. ID получен:", userId);
-
-        // Проверяем, есть ли профиль
-        let { data: profile, error: selectError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-        if (selectError && selectError.code === 'PGRST116') {
-            console.log("3. Профиль не найден, создаем новый...");
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert([{ id: userId, tokens: 0, multiplier: 1, last_index: 0 }]);
-            
-            if (insertError) {
-                alert("Ошибка создания строки: " + insertError.message);
-            } else {
-                alert("УРА! Профиль создан. Проверьте Supabase!");
-            }
-        } else if (profile) {
-            alert("Связь установлена! Ваш баланс из базы: " + profile.tokens);
-            tokens = profile.tokens;
-        }
-
-    } catch (err) {
-        alert("Критическая ошибка: " + err.message);
+    // Дальше ваш код инициализации...
+    async function init() {
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) console.error(error);
+        else console.log("User ID:", data.user.id);
     }
-}
-
-// Запускаем проверку немедленно
-testConnection();
+    init();
     
     async function init() {
     try {
@@ -305,6 +264,7 @@ testConnection();
 </script>
 </body>
 </html>
+
 
 
 
