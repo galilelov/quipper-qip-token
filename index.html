@@ -110,6 +110,12 @@
 </div>
 
 <script>
+    // Импорт Supabase
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co'
+const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'
+const supabase = createClient(supabaseUrl, supabaseKey)
     let tokens = 0, lives = 12, setProgress = 0, combo = 0, currentQuestionIndex = 0;
     let currentAnswer, timer, canClick = false, isBonus = false, bonusStep = 0, bonusAnswer = '';
     let allQuestions = [];
@@ -254,6 +260,7 @@
 </script>
 </body>
 </html>
+
 
 
 
