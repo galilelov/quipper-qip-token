@@ -116,59 +116,79 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co'
 const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'
 const supabase = createClient(supabaseUrl, supabaseKey)
-    let userSession = null;
+    // Основные данные игрока
+let userId = null;
+let tokens = 0;
+let multiplier = 1;
+let currentQuestionIndex = 0;
 
-// 1. Авторизация (Анонимный вход)
-async function signIn() {
-    const { data, error } = await supabase.auth.signInAnonymously();
-    if (error) console.error("Login error:", error);
-    else {
-        userSession = data.user;
-        await loadUserData();
+// Эта функция запускается ПЕРВОЙ при загрузке страницы
+async function initializeApp() {
+    // 1. Проверяем, залогинен ли пользователь
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+        userId = session.user.id;
+    } else {
+        // 2. Если нет — логиним анонимно
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+            console.error("Auth error:", error.message);
+            return;
+        }
+        userId = data.user.id;
     }
+
+    console.log("Logged in as:", userId);
+    
+    // 3. После входа загружаем профиль из таблицы
+    await loadUserProfile();
 }
 
-// 2. Загрузка данных игрока
-async function loadUserData() {
-    const { data, error } = await supabase
+async function loadUserProfile() {
+    // Ищем запись в таблице profiles
+    let { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userSession.id)
+        .eq('id', userId)
         .single();
 
-    if (data) {
-        tokens = data.tokens;
-        multiplier = data.multiplier;
-        currentQuestionIndex = data.last_index;
-        updateUI();
-    } else {
-        // Если профиля нет — создаем его
+    if (error && error.code === 'PGRST116') { 
+        // Если записи нет (новый игрок) — создаем её
+        console.log("Creating new profile...");
+        
+        // Проверяем реферальную ссылку в URL
         const urlParams = new URLSearchParams(window.location.search);
         const refId = urlParams.get('ref');
 
-        await supabase.from('profiles').insert([
-            { id: userSession.id, tokens: 0, multiplier: 1, invited_by: refId }
-        ]);
+        const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+                { id: userId, tokens: 0, multiplier: 1, last_index: 0, invited_by: refId }
+            ])
+            .select()
+            .single();
 
-        if (refId) {
-            // Начисляем бонус пригласившему
-            await supabase.rpc('increment_referral', { referrer_id: refId });
-        }
+        if (createError) console.error("Create profile error:", createError);
+        else profile = newProfile;
+    }
+
+    // Присваиваем данные из базы переменным игры
+    if (profile) {
+        tokens = profile.tokens;
+        multiplier = profile.multiplier;
+        currentQuestionIndex = profile.last_index;
+        
+        // Обновляем интерфейс игры
+        updateUI();
+        // Теперь можно разрешить загрузку вопросов и старт игры
+        loadQuestions(); 
     }
 }
 
-// 3. Сохранение прогресса (вызывать после каждого сета или покупки)
-async function saveGameProgress() {
-    if (!userSession) return;
-    await supabase
-        .from('profiles')
-        .update({ 
-            tokens: tokens, 
-            last_index: currentQuestionIndex,
-            multiplier: multiplier
-        })
-        .eq('id', userSession.id);
-}
+// Запускаем инициализацию при старте
+initializeApp();
+    let userSession = null;
     let tokens = 0, lives = 12, setProgress = 0, combo = 0, currentQuestionIndex = 0;
     let currentAnswer, timer, canClick = false, isBonus = false, bonusStep = 0, bonusAnswer = '';
     let allQuestions = [];
@@ -313,6 +333,7 @@ async function saveGameProgress() {
 </script>
 </body>
 </html>
+
 
 
 
