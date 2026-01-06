@@ -119,32 +119,48 @@
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     async function startApp() {
-    console.log("1. Вход...");
-    const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-    if (authError) return alert("Ошибка входа: " + authError.message);
+        alert("Проверка 1: Скрипт запущен");
 
-    const userId = authData.user.id;
-    console.log("ID игрока:", userId);
+        try {
+            // 1. Авторизация
+            const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+            if (authError) throw new Error("Ошибка входа: " + authError.message);
 
-    // Пытаемся создать запись
-    const { data: profile, error: insertError } = await supabase
-        .from('profiles')
-        .insert([{ 
-            id: userId, 
-            tokens: 123, // Дадим сразу 123 для теста
-            multiplier: 1 
-        }])
-        .select(); // Просим вернуть созданную строку
+            const userId = authData.user.id;
+            alert("Проверка 2: ID получен - " + userId);
 
-    if (insertError) {
-        // ЕСЛИ ЕСТЬ ОШИБКА - МЫ ЕЕ УВИДИМ ТУТ
-        console.error("Детали ошибки:", insertError);
-        alert("ОШИБКА БАЗЫ: " + insertError.code + "\n" + insertError.message);
-    } else {
-        alert("УСПЕХ! Запись создана. ID: " + userId);
-        console.log("Данные из базы:", profile);
+            // 2. Проверка, есть ли уже профиль
+            const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', userId)
+                .single();
+
+            if (existingProfile) {
+                alert("Проверка 3: Профиль уже был в базе!");
+                return;
+            }
+
+            // 3. Попытка записи
+            alert("Проверка 4: Пытаюсь создать запись в таблице...");
+            const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([{ id: userId, tokens: 0, multiplier: 1 }]);
+
+            if (insertError) {
+                console.error(insertError);
+                throw new Error("ОШИБКА ЗАПИСИ: " + insertError.code + " | " + insertError.message);
+            }
+
+            alert("ФИНАЛ: ЗАПИСЬ СОЗДАНА! Теперь проверьте Supabase.");
+
+        } catch (err) {
+            alert("КРИТИЧЕСКАЯ ОШИБКА: " + err.message);
+            console.error(err);
+        }
     }
-}
+
+    startApp();
     
     async function init() {
     try {
@@ -286,6 +302,7 @@
 </script>
 </body>
 </html>
+
 
 
 
