@@ -119,46 +119,50 @@
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     async function startApp() {
-        alert("Проверка 1: Скрипт запущен");
+    console.log("Старт...");
+    try {
+        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+        if (authError) throw authError;
 
-        try {
-            // 1. Авторизация
-            const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-            if (authError) throw new Error("Ошибка входа: " + authError.message);
+        const userId = authData.user.id;
+        console.log("Ваш ID:", userId);
 
-            const userId = authData.user.id;
-            alert("Проверка 2: ID получен - " + userId);
+        // 1. Просто проверяем наличие профиля без строгих фильтров
+        const { data: profiles, error: selectError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', userId);
 
-            // 2. Проверка, есть ли уже профиль
-            const { data: existingProfile } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('id', userId)
-                .single();
+        if (selectError) {
+            alert("ОШИБКА ЧТЕНИЯ: " + selectError.message);
+            return;
+        }
 
-            if (existingProfile) {
-                alert("Проверка 3: Профиль уже был в базе!");
-                return;
-            }
-
-            // 3. Попытка записи
-            alert("Проверка 4: Пытаюсь создать запись в таблице...");
+        // 2. Если массив пустой — создаем профиль
+        if (profiles.length === 0) {
+            console.log("Создаю запись...");
             const { error: insertError } = await supabase
                 .from('profiles')
                 .insert([{ id: userId, tokens: 0, multiplier: 1 }]);
 
             if (insertError) {
-                console.error(insertError);
-                throw new Error("ОШИБКА ЗАПИСИ: " + insertError.code + " | " + insertError.message);
+                alert("ОШИБКА ЗАПИСИ: " + insertError.message);
+            } else {
+                alert("УРА! ЗАПИСЬ СОЗДАНА! Обновите страницу Supabase.");
+                location.reload(); // Перезагрузим, чтобы подтянуть данные
             }
-
-            alert("ФИНАЛ: ЗАПИСЬ СОЗДАНА! Теперь проверьте Supabase.");
-
-        } catch (err) {
-            alert("КРИТИЧЕСКАЯ ОШИБКА: " + err.message);
-            console.error(err);
+        } else {
+            alert("СВЯЗЬ ЕСТЬ! Вы уже в базе. Можно играть.");
+            // Здесь запускайте вашу игру
+            window.userId = userId;
+            loadQuestions(); 
         }
+
+    } catch (err) {
+        alert("ОШИБКА СКРИПТА: " + err.message);
+        console.error(err);
     }
+}
 
     startApp();
     
@@ -302,6 +306,7 @@
 </script>
 </body>
 </html>
+
 
 
 
