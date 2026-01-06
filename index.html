@@ -109,85 +109,61 @@
     <button id="start-btn" onclick="startNewSet()">START SET</button>
 </div>
 
-<script>
+<script type="module">
     // Импорт Supabase
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
 const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co'
 const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'
 const supabase = createClient(supabaseUrl, supabaseKey)
-    // Основные данные игрока
-let userId = null;
+    let userId = null;
 let tokens = 0;
-let multiplier = 1;
-let currentQuestionIndex = 0;
 
-// Эта функция запускается ПЕРВОЙ при загрузке страницы
-async function initializeApp() {
-    // 1. Проверяем, залогинен ли пользователь
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session) {
-        userId = session.user.id;
-    } else {
-        // 2. Если нет — логиним анонимно
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-            console.error("Auth error:", error.message);
+async function testConnection() {
+    try {
+        console.log("1. Проверка авторизации...");
+        
+        // Попытка войти анонимно
+        const { data, error: authError } = await supabase.auth.signInAnonymously();
+        
+        if (authError) {
+            alert("Ошибка входа: " + authError.message);
             return;
         }
+
         userId = data.user.id;
-    }
+        console.log("2. ID получен:", userId);
 
-    console.log("Logged in as:", userId);
-    
-    // 3. После входа загружаем профиль из таблицы
-    await loadUserProfile();
-}
-
-async function loadUserProfile() {
-    // Ищем запись в таблице profiles
-    let { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-    if (error && error.code === 'PGRST116') { 
-        // Если записи нет (новый игрок) — создаем её
-        console.log("Creating new profile...");
-        
-        // Проверяем реферальную ссылку в URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const refId = urlParams.get('ref');
-
-        const { data: newProfile, error: createError } = await supabase
+        // Проверяем, есть ли профиль
+        let { data: profile, error: selectError } = await supabase
             .from('profiles')
-            .insert([
-                { id: userId, tokens: 0, multiplier: 1, last_index: 0, invited_by: refId }
-            ])
-            .select()
+            .select('*')
+            .eq('id', userId)
             .single();
 
-        if (createError) console.error("Create profile error:", createError);
-        else profile = newProfile;
-    }
+        if (selectError && selectError.code === 'PGRST116') {
+            console.log("3. Профиль не найден, создаем новый...");
+            const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([{ id: userId, tokens: 0, multiplier: 1, last_index: 0 }]);
+            
+            if (insertError) {
+                alert("Ошибка создания строки: " + insertError.message);
+            } else {
+                alert("УРА! Профиль создан. Проверьте Supabase!");
+            }
+        } else if (profile) {
+            alert("Связь установлена! Ваш баланс из базы: " + profile.tokens);
+            tokens = profile.tokens;
+        }
 
-    // Присваиваем данные из базы переменным игры
-    if (profile) {
-        tokens = profile.tokens;
-        multiplier = profile.multiplier;
-        currentQuestionIndex = profile.last_index;
-        
-        // Обновляем интерфейс игры
-        updateUI();
-        // Теперь можно разрешить загрузку вопросов и старт игры
-        loadQuestions(); 
+    } catch (err) {
+        alert("Критическая ошибка: " + err.message);
     }
 }
 
-// Запускаем инициализацию при старте
-initializeApp();
+// Запускаем проверку немедленно
+testConnection();
     
     async function init() {
     try {
@@ -329,6 +305,7 @@ initializeApp();
 </script>
 </body>
 </html>
+
 
 
 
