@@ -119,52 +119,32 @@
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     async function startApp() {
-        console.log("1. Авторизация...");
-        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-        
-        if (authError) {
-            alert("Ошибка входа: " + authError.message);
-            return;
-        }
+    console.log("1. Вход...");
+    const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+    if (authError) return alert("Ошибка входа: " + authError.message);
 
-        const userId = authData.user.id;
-        console.log("2. ID получен:", userId);
+    const userId = authData.user.id;
+    console.log("ID игрока:", userId);
 
-        // Пытаемся найти профиль
-        const { data: profile, error: selectError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
+    // Пытаемся создать запись
+    const { data: profile, error: insertError } = await supabase
+        .from('profiles')
+        .insert([{ 
+            id: userId, 
+            tokens: 123, // Дадим сразу 123 для теста
+            multiplier: 1 
+        }])
+        .select(); // Просим вернуть созданную строку
 
-        if (selectError && selectError.code !== 'PGRST116') {
-            alert("Ошибка поиска профиля: " + selectError.message);
-            return;
-        }
-
-        if (!profile) {
-            console.log("3. Профиль не найден, создаем...");
-            // ВОТ ТУТ ПРОИСХОДИТ ЗАПИСЬ В ТАБЛИЦУ
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert([{ 
-                    id: userId, 
-                    tokens: 0, 
-                    multiplier: 1 
-                }]);
-
-            if (insertError) {
-                alert("ОШИБКА ЗАПИСИ В ТАБЛИЦУ: " + insertError.message);
-                console.error(insertError);
-            } else {
-                alert("УСПЕХ! Строка создана. Обновите Supabase!");
-            }
-        } else {
-            alert("Профиль уже существует! Токены: " + profile.tokens);
-        }
+    if (insertError) {
+        // ЕСЛИ ЕСТЬ ОШИБКА - МЫ ЕЕ УВИДИМ ТУТ
+        console.error("Детали ошибки:", insertError);
+        alert("ОШИБКА БАЗЫ: " + insertError.code + "\n" + insertError.message);
+    } else {
+        alert("УСПЕХ! Запись создана. ID: " + userId);
+        console.log("Данные из базы:", profile);
     }
-
-    startApp();
+}
     
     async function init() {
     try {
@@ -306,6 +286,7 @@
 </script>
 </body>
 </html>
+
 
 
 
