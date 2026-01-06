@@ -116,25 +116,55 @@
     const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co'
     const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'
     
-    // 2. Инициализация (создаем константу supabase)
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    async function testAuth() {
-        console.log("Попытка входа...");
-        // 3. Пытаемся войти
-        const { data, error } = await supabase.auth.signInAnonymously();
+    async function startApp() {
+        console.log("1. Авторизация...");
+        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+        
+        if (authError) {
+            alert("Ошибка входа: " + authError.message);
+            return;
+        }
 
-        if (error) {
-            console.error("Ошибка авторизации:", error.message);
-            alert("Auth error: " + error.message);
+        const userId = authData.user.id;
+        console.log("2. ID получен:", userId);
+
+        // Пытаемся найти профиль
+        const { data: profile, error: selectError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+        if (selectError && selectError.code !== 'PGRST116') {
+            alert("Ошибка поиска профиля: " + selectError.message);
+            return;
+        }
+
+        if (!profile) {
+            console.log("3. Профиль не найден, создаем...");
+            // ВОТ ТУТ ПРОИСХОДИТ ЗАПИСЬ В ТАБЛИЦУ
+            const { error: insertError } = await supabase
+                .from('profiles')
+                .insert([{ 
+                    id: userId, 
+                    tokens: 0, 
+                    multiplier: 1 
+                }]);
+
+            if (insertError) {
+                alert("ОШИБКА ЗАПИСИ В ТАБЛИЦУ: " + insertError.message);
+                console.error(insertError);
+            } else {
+                alert("УСПЕХ! Строка создана. Обновите Supabase!");
+            }
         } else {
-            console.log("Успех! Ваш ID:", data.user.id);
-            alert("Вы вошли! ID: " + data.user.id);
-            // Здесь вызываем загрузку профиля
+            alert("Профиль уже существует! Токены: " + profile.tokens);
         }
     }
 
-    testAuth();
+    startApp();
     
     async function init() {
     try {
@@ -276,6 +306,7 @@
 </script>
 </body>
 </html>
+
 
 
 
