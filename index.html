@@ -115,18 +115,20 @@
     let allQuestions = [];
 
     async function init() {
-        const qBox = document.getElementById('question-box');
-        try {
-            const res = await fetch('questions.json?v=' + Date.now());
-            if (!res.ok) throw new Error(`Error ${res.status}`);
-            allQuestions = await res.json();
-            qBox.innerText = "READY";
-            document.getElementById('start-btn').style.display = 'block';
-        } catch (e) {
-            qBox.innerHTML = `<span style="color:#ff4757; font-size:14px;">LOAD ERROR</span>`;
-        }
-    }
+    try {
+        const res = await fetch('questions.json?v=' + Date.now());
+        allQuestions = await res.json();
+        
+        // ВЫБИРАЕМ СЛУЧАЙНЫЙ СТАРТОВЫЙ БЛОК (кратно 9)
+        const totalSets = Math.floor(allQuestions.length / 9);
+        currentQuestionIndex = Math.floor(Math.random() * totalSets) * 9;
 
+        document.getElementById('question-box').innerText = "READY";
+        document.getElementById('start-btn').style.display = 'block';
+    } catch (e) {
+        document.getElementById('question-box').innerText = "LOAD ERROR";
+    }
+}
     function startNewSet() {
         setProgress = 0; lives = 12; combo = 0; isBonus = false;
         document.getElementById('start-btn').style.display = 'none';
@@ -252,6 +254,7 @@
 </script>
 </body>
 </html>
+
 
 
 
