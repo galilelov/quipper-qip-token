@@ -132,6 +132,50 @@
     let questions = [], queue = [], curAns, timer, canClick = false;
     let lives = 12, setCounter = 0, bonusAns = '';
 
+    // --- Новая функция для обработки реферальной ссылки ---
+    async function handleReferralLink() {
+        // Получаем параметры из URL (например, ?ref=userid123&uid=userid456)
+        const urlParams = new URLSearchParams(window.location.search);
+        const referrerId = urlParams.get('ref');
+        const currentUserId = window.userId; // Предполагается, что window.userId уже установлен в init()
+
+        // Проверяем, есть ли в URL параметр 'ref' и определен ли ID текущего пользователя
+        if (referrerId && currentUserId) {
+            // Важно: Проверяем, что пользователь не пытается пригласить сам себя
+            if (referrerId !== currentUserId) {
+                try {
+                    // Формируем URL для вызова нашей Supabase Edge Function
+                    // Убедитесь, что URL проекта и название функции соответствуют вашим
+                    const functionUrl = `https://gjfbsfkvyicvxqbzduud.supabase.co/functions/v1/awardReferral?ref=${referrerId}&uid=${currentUserId}`;
+                    
+                    // Отправляем GET-запрос к нашей функции
+                    const response = await fetch(functionUrl);
+                    const data = await response.json();
+                    
+                    // Проверяем, успешно ли выполнилась функция
+                    if (response.ok && data.success) {
+                        console.log("Referral reward awarded successfully!");
+                        // Можно показать пользователю сообщение об успехе (опционально)
+                        // alert("You've been referred! Reward awarded."); 
+                    } else {
+                        // Если функция вернула ошибку или не успех
+                        console.error("Failed to award referral:", data.error || data.message);
+                        // Возможно, пользователь уже имел реферера, или произошла другая ошибка на сервере
+                    }
+                } catch (error) {
+                    // Если произошла сетевая ошибка или ошибка при вызове fetch
+                    console.error("Error calling referral function:", error);
+                }
+            } else {
+                console.log("Skipping referral check: user is the referrer (invited themselves).");
+            }
+        } else {
+            // Если нет параметра 'ref' или userId еще не определен, ничего не делаем
+            // console.log("No referral link or user ID found to process.");
+        }
+    }
+
+
     function shuffle(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -153,6 +197,11 @@
         const qRes = await fetch('questions.json?v=' + Date.now());
         questions = await qRes.json();
         updateUI();
+
+await handleReferralLink(); 
+
+            const qRes = await fetch('questions.json?v=' + Date.now());
+            questions = await qRes.json();
     }
 
     window.startFullGame = function() {
