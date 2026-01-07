@@ -214,21 +214,21 @@
 
     function makeMove(num) {
         if (!canClick) return;
-        if (num === currentAnswer) {
-            clearInterval(timer); canClick = false;
-            tokens += 10; combo++; setProgress++;
-            if (combo === 3) { tokens += 30; combo = 0; }
-            document.querySelectorAll('#grid .cell')[num-1].classList.add('correct');
-            currentQuestionIndex = (currentQuestionIndex + 1) % allQuestions.length;
-            updateUI();
-            setTimeout(nextQuestion, 300);
-        } else {
-            tokens = Math.max(0, tokens - 1); lives--; combo = 0;
-            document.querySelectorAll('#grid .cell')[num-1].classList.add('wrong');
-            updateUI();
-            if (lives <= 0) gameOver("GAME OVER");
+
+    if (num === currentAnswer) {
+        // 1. Увеличиваем токены в памяти браузера
+        // Используем множитель из базы (multiplier), если он есть
+        let bonus = 10 * (window.multiplier || 1); 
+        window.tokens += bonus;
+
+        // 2. Обновляем визуальный счетчик на экране
+        updateUI(); 
+
+        // 3. ОТПРАВЛЯЕМ В БАЗУ ДАННЫХ
+        // Мы используем функцию, которую написали в блоке Supabase
+        if (window.saveProgress) {
+            window.saveProgress();
         }
-    }
 
     function startBonusRound() {
         isBonus = true; bonusStep = 0;
@@ -318,6 +318,7 @@
 </script>
 </body>
 </html>
+
 
 
 
