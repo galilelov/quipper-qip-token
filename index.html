@@ -115,37 +115,68 @@
 
     const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co'
     const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'
-    
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    async function startApp() {
-    console.log("Проверка сессии...");
-    
-    // Сначала проверяем, есть ли уже активная сессия в браузере
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    let user;
-    if (session) {
-        user = session.user;
-        console.log("Сессия найдена:", user.id);
-    } else {
-        console.log("Сессии нет, входим анонимно...");
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-            // Если всё еще лимит, просто выходим
-            if (error.status === 429) {
-                alert("Слишком много попыток! Подождите 5 минут.");
-            }
-            return;
+    // Переменные, которые будут использовать функции игры
+    window.userId = null;
+    window.tokens = 0;
+    window.multiplier = 1;
+
+    async function startQUIP() {
+        const { data: { session } } = await supabase.auth.getSession();
+        let user = session ? session.user : null;
+
+        if (!user) {
+            const { data, error } = await supabase.auth.signInAnonymously();
+            if (error) return console.error("Login failed");
+            user = data.user;
         }
-        user = data.user;
+
+        window.userId = user.id;
+        console.log("QUIP User:", window.userId);
+
+        await syncDataWithDatabase();
     }
 
-    const userId = user.id;
-    // Дальше ваш код загрузки профиля...
-}
+    async function syncDataWithDatabase() {
+        // 1. Пытаемся получить данные
+        let { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', window.userId)
+            .single();
 
-    startApp();
+        // 2. Если профиля нет — создаем
+        if (error && error.code === 'PGRST116') {
+            console.log("Создаем новый профиль...");
+            const { data: newProfile, error: insError } = await supabase
+                .from('profiles')
+                .insert([{ id: window.userId, tokens: 0, multiplier: 1 }])
+                .select().single();
+            profile = newProfile;
+        }
+
+        // 3. Загружаем данные в игру
+        if (profile) {
+            window.tokens = profile.tokens;
+            window.multiplier = profile.multiplier;
+            updateUI(); // Обновит счетчик на экране
+            console.log("Данные загружены! Баланс:", window.tokens);
+        }
+    }
+
+    // Эту функцию мы будем вызывать при каждом правильном ответе
+    window.saveProgress = async function() {
+        if (!window.userId) return;
+        const { error } = await supabase
+            .from('profiles')
+            .update({ tokens: window.tokens })
+            .eq('id', window.userId);
+        
+        if (!error) console.log("Прогресс сохранен в облаке!");
+    }
+
+    startQUIP();
     
     async function init() {
     try {
@@ -287,6 +318,7 @@
 </script>
 </body>
 </html>
+
 
 
 
