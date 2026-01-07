@@ -149,15 +149,24 @@
         if (referrerId && currentUserId) {
             if (referrerId !== currentUserId) {
                 try {
-                    // Убедитесь, что URL проекта здесь правильный для вашей Edge Function
                     const functionUrl = `https://gjfbsfkvyicvxqbzduud.supabase.co/functions/v1/awardReferral?ref=${referrerId}&uid=${currentUserId}`;
-                    const response = await fetch(functionUrl);
+                    
+                    // !!! ВАЖНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ !!!
+                    const response = await fetch(functionUrl, {
+                        method: 'GET', // Или 'POST', если ваша функция его ожидает (по умолчанию GET)
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${supabaseKey}` // Добавляем Authorization header
+                        }
+                    });
+                    // !!! КОНЕЦ ВАЖНОГО ИЗМЕНЕНИЯ !!!
+
                     const data = await response.json();
                     
                     if (response.ok && data.success) {
                         console.log("Referral reward awarded successfully!");
                         // Если награда присуждена, возможно, нужно обновить токены в UI
-                        // fetchProfileDataAndRefreshUI(); // Вызовите функцию для обновления данных пользователя
+                        await fetchProfileDataAndRefreshUI(); // Вызовите функцию для обновления данных пользователя
                     } else {
                         console.error("Failed to award referral:", data.error || data.message);
                     }
@@ -333,3 +342,4 @@ else { await supabase.from('profiles').insert([{ id: userId, tokens: 0, multipli
 </script>
 </body>
 </html>
+
