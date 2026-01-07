@@ -132,50 +132,6 @@
     let questions = [], queue = [], curAns, timer, canClick = false;
     let lives = 12, setCounter = 0, bonusAns = '';
 
-    // --- Новая функция для обработки реферальной ссылки ---
-    async function handleReferralLink() {
-        // Получаем параметры из URL (например, ?ref=userid123&uid=userid456)
-        const urlParams = new URLSearchParams(window.location.search);
-        const referrerId = urlParams.get('ref');
-        const currentUserId = window.userId; // Предполагается, что window.userId уже установлен в init()
-
-        // Проверяем, есть ли в URL параметр 'ref' и определен ли ID текущего пользователя
-        if (referrerId && currentUserId) {
-            // Важно: Проверяем, что пользователь не пытается пригласить сам себя
-            if (referrerId !== currentUserId) {
-                try {
-                    // Формируем URL для вызова нашей Supabase Edge Function
-                    // Убедитесь, что URL проекта и название функции соответствуют вашим
-                    const functionUrl = `https://gjfbsfkvyicvxqbzduud.supabase.co/functions/v1/awardReferral?ref=${referrerId}&uid=${currentUserId}`;
-                    
-                    // Отправляем GET-запрос к нашей функции
-                    const response = await fetch(functionUrl);
-                    const data = await response.json();
-                    
-                    // Проверяем, успешно ли выполнилась функция
-                    if (response.ok && data.success) {
-                        console.log("Referral reward awarded successfully!");
-                        // Можно показать пользователю сообщение об успехе (опционально)
-                        // alert("You've been referred! Reward awarded."); 
-                    } else {
-                        // Если функция вернула ошибку или не успех
-                        console.error("Failed to award referral:", data.error || data.message);
-                        // Возможно, пользователь уже имел реферера, или произошла другая ошибка на сервере
-                    }
-                } catch (error) {
-                    // Если произошла сетевая ошибка или ошибка при вызове fetch
-                    console.error("Error calling referral function:", error);
-                }
-            } else {
-                console.log("Skipping referral check: user is the referrer (invited themselves).");
-            }
-        } else {
-            // Если нет параметра 'ref' или userId еще не определен, ничего не делаем
-            // console.log("No referral link or user ID found to process.");
-        }
-    }
-
-
     function shuffle(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -183,6 +139,51 @@
         }
         return arr;
     }
+
+    // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
+    async function handleReferralLink() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const referrerId = urlParams.get('ref');
+        const currentUserId = userId; // Используем глобальный userId
+
+        if (referrerId && currentUserId) {
+            if (referrerId !== currentUserId) {
+                try {
+                    // Убедитесь, что URL проекта здесь правильный для вашей Edge Function
+                    const functionUrl = `https://gjfbsfkvyicvxqbzduud.supabase.co/functions/v1/awardReferral?ref=${referrerId}&uid=${currentUserId}`;
+                    const response = await fetch(functionUrl);
+                    const data = await response.json();
+                    
+                    if (response.ok && data.success) {
+                        console.log("Referral reward awarded successfully!");
+                        // Если награда присуждена, возможно, нужно обновить токены в UI
+                        // fetchProfileDataAndRefreshUI(); // Вызовите функцию для обновления данных пользователя
+                    } else {
+                        console.error("Failed to award referral:", data.error || data.message);
+                    }
+                } catch (error) {
+                    console.error("Error calling referral function:", error);
+                }
+            } else {
+                console.log("Skipping referral check: user is the referrer.");
+            }
+        }
+    }
+    // --- КОНЕЦ handleReferralLink ---
+
+    // Функция для получения и обновления данных профиля (может быть полезна после рефералки)
+    async function fetchProfileDataAndRefreshUI() {
+        const { data: p, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+        if (error) {
+            console.error("Error fetching profile after referral:", error);
+            // Можно просто перезагрузить страницу или показать ошибку
+        } else if (p) {
+            tokens = p.tokens;
+            multiplier = p.multiplier;
+            updateUI();
+        }
+    }
+
 
     async function init() {
         const { data: { session } } = await supabase.auth.getSession();
@@ -192,18 +193,19 @@
 
         const { data: p } = await supabase.from('profiles').select('*').eq('id', userId).single();
         if (p) { tokens = p.tokens; multiplier = p.multiplier; }
-        else { await supabase.from('profiles').insert([{ id: userId, tokens: 0, multiplier: 1 }]); }
+else { await supabase.from('profiles').insert([{ id: userId, tokens: 0, multiplier: 1 }]); }
         
+        updateUI(); 
+        
+        // !!! ВАЖНО: Вызов handleReferralLink после установки userId !!!
+        await handleReferralLink(); 
+
+        // ИСПРАВЛЕНО: Объявление const qRes только один раз
         const qRes = await fetch('questions.json?v=' + Date.now());
         questions = await qRes.json();
-        updateUI();
-
-await handleReferralLink(); 
-
-            const qRes = await fetch('questions.json?v=' + Date.now());
-            questions = await qRes.json();
     }
 
+    // --- ГЛОБАЛЬНЫЕ ФУНКЦИИ (доступные из HTML) ---
     window.startFullGame = function() {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('play-screen').style.display = 'flex';
@@ -259,7 +261,7 @@ await handleReferralLink();
             bar.style.transition = `width ${ms/1000}s linear`;
             bar.style.width = '0%';
         }, 50);
-        timer = setTimeout(() => handleInput(-1), ms);
+        timer = setTimeout(() => window.handleInput(-1), ms); // Вызов через window
     }
 
     function startBonus() {
