@@ -213,22 +213,41 @@
     }
 
     function makeMove(num) {
-        if (!canClick) return;
+    if (!canClick) return;
 
     if (num === currentAnswer) {
-        // 1. Увеличиваем токены в памяти браузера
-        // Используем множитель из базы (multiplier), если он есть
-        let bonus = 10 * (window.multiplier || 1); 
+        // Правильный ответ
+        let bonus = 10 * (window.multiplier || 1);
         window.tokens += bonus;
+        
+        updateUI(); // Обновляем экран
 
-        // 2. Обновляем визуальный счетчик на экране
-        updateUI(); 
-
-        // 3. ОТПРАВЛЯЕМ В БАЗУ ДАННЫХ
-        // Мы используем функцию, которую написали в блоке Supabase
-        if (window.saveProgress) {
+        // Сохраняем в базу (если функция загружена)
+        if (typeof window.saveProgress === 'function') {
             window.saveProgress();
         }
+
+        // Анимация успеха и переход
+        document.getElementById('question-box').style.color = '#4ade80';
+        canClick = false;
+        
+        setTimeout(() => {
+            currentQuestionIndex++;
+            nextQuestion();
+        }, 500);
+
+    } else {
+        // Ошибка
+        lives--;
+        updateUI();
+        document.getElementById('question-box').style.color = '#ef4444';
+        
+        if (lives <= 0) {
+            alert("GAME OVER! Your score: " + window.tokens);
+            location.reload();
+        }
+    }
+}
 
     function startBonusRound() {
         isBonus = true; bonusStep = 0;
@@ -295,11 +314,12 @@
     }
 
     function updateUI() {
-        document.getElementById('tokens').innerText = tokens;
-        document.getElementById('lives').innerText = lives;
-        document.getElementById('progress').innerText = setProgress;
-        document.querySelectorAll('.dot').forEach((d, i) => d.className = i < combo ? 'dot active' : 'dot');
+        function updateUI() {
+    const tokensLabel = document.getElementById('tokens-count');
+    if (tokensLabel) {
+        tokensLabel.innerText = window.tokens;
     }
+}
 
     function gameOver(txt) {
         clearInterval(timer); canClick = false;
@@ -318,6 +338,7 @@
 </script>
 </body>
 </html>
+
 
 
 
