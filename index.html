@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>QUIP Math Pro</title>
     <style>
-        :root { --primary: #e94560; --bg: #1a1a2e; --panel: #16213e; --text: #e9e9e9; }
+        :root { --primary: #e94560; --bg: #0d1117; --panel: #161b22; --text: #e6edf3; --accent: #f1c40f; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation; }
         
         body { 
@@ -16,60 +16,62 @@
 
         #game-container { 
             width: 100%; max-width: 400px; height: 100%;
-            padding: env(safe-area-inset-top, 10px) 15px env(safe-area-inset-bottom, 20px) 15px;
+            padding: env(safe-area-inset-top, 10px) 15px env(safe-area-inset-bottom, 15px) 15px;
             display: flex; flex-direction: column;
         }
 
-        /* Статус бар сверху */
-        .status-bar { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; }
-        .stat-item { background: var(--panel); padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .status-bar { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
+        .stat-item { background: var(--panel); padding: 6px 12px; border-radius: 10px; border: 1px solid #30363d; font-size: 14px; }
         .stat-item b { color: var(--primary); }
 
-        /* Экран запуска (видны только при входе) */
-        #start-screen { 
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
-        }
-        #big-start-btn { 
-            width: 100%; padding: 30px; font-size: 24px; font-weight: 900; 
-            background: var(--primary); color: white; border: none; border-radius: 20px;
-            box-shadow: 0 8px 0 #a02d40; cursor: pointer; text-transform: uppercase;
-        }
-        #big-start-btn:active { transform: translateY(4px); box-shadow: 0 4px 0 #a02d40; }
+        .menu-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .menu-row button { flex: 1; padding: 8px; background: transparent; border: 1px solid #30363d; color: #8b949e; border-radius: 8px; font-size: 11px; font-weight: bold; }
 
-        /* Игровой экран (скрыт изначально) */
+        /* ЭКРАН СТАРТА */
+        #start-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+        #big-start-btn { 
+            width: 100%; padding: 25px; font-size: 22px; font-weight: 900; 
+            background: var(--primary); color: white; border: none; border-radius: 15px;
+            box-shadow: 0 6px 0 #a02d40; cursor: pointer;
+        }
+        #big-start-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #a02d40; }
+
+        /* ИГРОВОЙ ЭКРАН */
         #play-screen { display: none; flex-direction: column; height: 100%; }
         
+        /* УКОРОЧЕННЫЙ БОКС ВОПРОСА */
         #question-box { 
-            height: 120px; background: var(--panel); border-radius: 20px; 
+            height: 85px; background: var(--panel); border-radius: 15px; 
             display: flex; align-items: center; justify-content: center; 
-            font-size: 26px; font-weight: bold; margin-bottom: 10px;
-            border: 1px solid rgba(255,255,255,0.1); text-align: center;
+            font-size: 28px; font-weight: bold; margin-bottom: 8px;
+            border: 1px solid #30363d; text-align: center; overflow: hidden;
         }
 
-        #timer-area { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        #timer-area { width: 100%; height: 5px; background: #21262d; border-radius: 3px; margin-bottom: 15px; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: var(--primary); }
 
-        #grid, #bonus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: auto; padding-bottom: 20px;}
+        #grid, #bonus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: auto; padding-bottom: 10px; }
         
         .cell { 
-            aspect-ratio: 1.2; background: var(--panel); border: none; color: white; 
-            font-size: 32px; font-weight: bold; border-radius: 15px; 
-            box-shadow: 0 5px 0 #0f3460; display: flex; align-items: center; justify-content: center;
+            aspect-ratio: 1.3; background: var(--panel); border: 1px solid #30363d; color: white; 
+            font-size: 28px; font-weight: bold; border-radius: 12px; 
+            box-shadow: 0 4px 0 #000; display: flex; align-items: center; justify-content: center;
         }
-        .cell:active { transform: translateY(3px); box-shadow: 0 2px 0 #0f3460; background: var(--primary); }
+        .cell:active { transform: translateY(2px); box-shadow: 0 2px 0 #000; background: var(--primary); border-color: var(--primary); }
 
-        /* Меню и оверлеи */
-        .menu-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        .menu-row button { flex: 1; padding: 10px; background: transparent; border: 1px solid var(--primary); color: white; border-radius: 10px; font-size: 12px; }
+        /* БОНУСНЫЙ СТИЛЬ */
+        .q-mark { color: var(--accent); font-size: 38px; margin: 0 10px; animation: pulse 0.8s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 1000; }
-        .panel { background: var(--panel); width: 85%; padding: 25px; border-radius: 20px; border: 1px solid var(--primary); text-align: center; }
+        /* ОВЕРЛЕИ */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
+        .panel { background: var(--panel); width: 85%; padding: 20px; border-radius: 15px; border: 1px solid #30363d; text-align: center; }
+        .panel button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <!-- Шапка всегда сверху -->
     <div class="status-bar">
         <div class="stat-item">💰 <span id="t-count">0</span> <small id="m-label">x1</small></div>
         <div class="stat-item">❤️ <span id="l-count">12</span></div>
@@ -80,16 +82,11 @@
         <button onclick="openPanel('shop')">SHOP</button>
     </div>
 
-    <!-- Начальный экран -->
     <div id="start-screen">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color:var(--primary); margin:0; font-size: 40px;">QUIP</h1>
-            <p style="opacity:0.6;">Math Blitz Challenge</p>
-        </div>
+        <h1 style="color:var(--primary); margin:0; font-size: 42px; letter-spacing: 2px;">QUIP</h1>
         <button id="big-start-btn" onclick="startFullGame()">START GAME</button>
     </div>
 
-    <!-- Игровой экран -->
     <div id="play-screen">
         <div id="question-box">...</div>
         <div id="timer-area"><div id="timer-bar"></div></div>
@@ -114,18 +111,17 @@
     </div>
 </div>
 
-<!-- Оверлеи (Профиль и Магазин) -->
 <div id="overlay-bg" class="overlay" onclick="closePanels()">
     <div class="panel" id="profile-panel" onclick="event.stopPropagation()" style="display:none;">
-        <h2>PROFILE</h2>
-        <p style="font-size:11px; opacity:0.5; word-break:break-all;" id="u-id">ID: ...</p>
-        <button onclick="copyLink()" style="width:100%; padding:15px; background:#444; color:white; border:none; border-radius:10px;">COPY INVITE LINK</button>
+        <h3>USER PROFILE</h3>
+        <p style="font-size:10px; color:#8b949e; word-break:break-all;" id="u-id">ID: ...</p>
+        <button onclick="copyLink()" style="background:#21262d; color:white;">COPY INVITE LINK</button>
     </div>
-<div class="panel" id="shop-panel" onclick="event.stopPropagation()" style="display:none;">
-        <h2>SHOP</h2>
-        <button onclick="buy(2, 2000)" style="width:100%; padding:12px; margin-bottom:10px;">X2 Multiplier (2000)</button>
-        <button onclick="buy(3, 10000)" style="width:100%; padding:12px; margin-bottom:10px;">X3 Multiplier (10k)</button>
-        <button onclick="buy(5, 50000)" style="width:100%; padding:12px;">X5 Multiplier (50k)</button>
+    <div class="panel" id="shop-panel" onclick="event.stopPropagation()" style="display:none;">
+        <h3>BOOST SHOP</h3>
+        <button onclick="buy(2, 2000)" style="background:#238636; color:white;">X2 Boost (2000)</button>
+        <button onclick="buy(3, 10000)" style="background:#238636; color:white;">X3 Boost (10k)</button>
+        <button onclick="buy(5, 50000)" style="background:#238636; color:white;">X5 Boost (50k)</button>
     </div>
 </div>
 
@@ -136,12 +132,10 @@
     const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'; 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Глобальные переменные
     let userId, tokens = 0, multiplier = 1;
     let questions = [], queue = [], curAns, timer, canClick = false;
     let lives = 12, setCounter = 0, bonusAns = '';
 
-    // Перемешивание
     function shuffle(arr) {
         for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -150,7 +144,6 @@
         return arr;
     }
 
-    // Загрузка
     async function init() {
         const { data: { session } } = await supabase.auth.getSession();
         let user = session ? session.user : (await supabase.auth.signInAnonymously()).data.user;
@@ -158,20 +151,14 @@
         document.getElementById('u-id').innerText = "ID: " + userId;
 
         const { data: p } = await supabase.from('profiles').select('*').eq('id', userId).single();
-        if (p) {
-            tokens = p.tokens;
-            multiplier = p.multiplier;
-        } else {
-            await supabase.from('profiles').insert([{ id: userId, tokens: 0, multiplier: 1 }]);
-        }
+        if (p) { tokens = p.tokens; multiplier = p.multiplier; }
+        else { await supabase.from('profiles').insert([{ id: userId, tokens: 0, multiplier: 1 }]); }
         
         const qRes = await fetch('questions.json?v=' + Date.now());
         questions = await qRes.json();
-        
         updateUI();
     }
 
-    // Запуск игры
     window.startFullGame = function() {
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('play-screen').style.display = 'flex';
@@ -179,11 +166,8 @@
     };
 
     function startNewSet() {
-        setCounter = 0;
-        lives = 12;
-        // Обновляем очередь, если она пуста
-        if (queue.length < 10) queue = shuffle([...questions]);
-        
+        setCounter = 0; lives = 12;
+        if (queue.length < 15) queue = shuffle([...questions]);
         document.getElementById('grid').style.display = 'grid';
         document.getElementById('bonus-grid').style.display = 'none';
         nextQuestion();
@@ -191,15 +175,12 @@
 
     function nextQuestion() {
         if (setCounter >= 9) return startBonus();
-        
         canClick = false;
         const qData = queue.shift();
         curAns = qData.a;
-        
         const box = document.getElementById('question-box');
         box.innerText = qData.q;
         box.style.color = 'white';
-        
         startTimer(qData.t);
         setCounter++;
         updateUI();
@@ -212,19 +193,16 @@
         clearTimeout(timer);
 
         if (n === curAns) {
-            tokens += (10 * multiplier);
+            tokens += (5 * multiplier); // Награда 5 токенов
             document.getElementById('question-box').style.color = '#4ade80';
             save();
             setTimeout(nextQuestion, 400);
         } else {
+            tokens = Math.max(0, tokens - 1); // Штраф -1
             lives--;
             document.getElementById('question-box').style.color = '#ff4757';
-            if (lives <= 0) {
-                alert("GAME OVER! Tokens: " + tokens);
-                location.reload();
-            } else {
-                setTimeout(nextQuestion, 400);
-            }
+            if (lives <= 0) { alert("GAME OVER!"); location.reload(); }
+            else { setTimeout(nextQuestion, 400); }
         }
         updateUI();
     };
@@ -233,7 +211,8 @@
         const bar = document.getElementById('timer-bar');
         bar.style.transition = 'none'; bar.style.width = '100%';
         setTimeout(() => {
-            bar.style.transition = `width ${ms/1000}s linear`;
+            bar.style.transition = `width ${
+ms/1000}s linear`;
             bar.style.width = '0%';
         }, 50);
         timer = setTimeout(() => handleInput(-1), ms);
@@ -242,10 +221,19 @@
     function startBonus() {
         document.getElementById('grid').style.display = 'none';
         document.getElementById('bonus-grid').style.display = 'grid';
-        const qA = questions[Math.floor(Math.random()*questions.length)];
-        const qB = questions[Math.floor(Math.random()*questions.length)];
+        
+        // Фильтруем только короткие вопросы для бонуса
+        const shortQ = questions.filter(q => q.q.length <= 7);
+        const source = shortQ.length > 5 ? shortQ : questions;
+        
+        const qA = source[Math.floor(Math.random()*source.length)];
+        const qB = source[Math.floor(Math.random()*source.length)];
+        
         bonusAns = qA.a < qB.a ? '<' : (qA.a > qB.a ? '>' : '=');
-        document.getElementById('question-box').innerHTML = `${qA.q} <span style="color:var(--primary); font-size:40px;">?</span> ${qB.q}`;
+        
+        document.getElementById('question-box').innerHTML = 
+            `<span>${qA.q}</span><span class="q-mark">?</span><span>${qB.q}</span>`;
+        
         startTimer(7000);
         canClick = true;
     }
@@ -259,9 +247,11 @@
             save();
             startNewSet();
         } else {
-            alert("BONUS LOST");
+            tokens = Math.max(0, tokens - 1); // Штраф даже в бонусе
+            alert("BONUS LOST!");
             startNewSet();
         }
+        updateUI();
     };
 
     async function save() {
@@ -274,7 +264,6 @@
         document.getElementById('m-label').innerText = 'x' + multiplier;
     }
 
-    // Панели
     window.openPanel = (p) => {
         document.getElementById('overlay-bg').style.display = 'flex';
         document.getElementById(p + '-panel').style.display = 'block';
@@ -287,8 +276,8 @@
     window.buy = async (m, cost) => {
         if (tokens >= cost) {
             tokens -= cost; multiplier = m;
-            await save(); updateUI(); alert("Success!");
-        } else alert("No tokens");
+            await save(); updateUI(); alert("Multiplier X" + m + " active!");
+        } else alert("Need more tokens!");
     };
     window.copyLink = () => {
         navigator.clipboard.writeText('https://galilelov.github.io/quipper-qip-token/?ref=' + userId);
@@ -299,4 +288,3 @@
 </script>
 </body>
 </html>
-
