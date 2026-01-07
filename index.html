@@ -2,107 +2,153 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QUIP: QIP Token Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>QUIP PRO: Math Blitz</title>
     <style>
-        body { font-family: sans-serif; background: #0d1117; color: #c9d1d9; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; flex-direction: column; }
-        #game-container { background: #161b22; border-radius: 12px; padding: 20px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #30363d; }
-        #status-bar { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 18px; }
-        #question-box { background: #21262d; border-radius: 8px; padding: 20px; margin-bottom: 20px; font-size: 28px; font-weight: bold; min-height: 60px; display: flex; align-items: center; justify-content: center; border: 1px solid #30363d; }
-        #timer-area { background: #30363d; height: 8px; border-radius: 4px; margin-bottom: 20px; overflow: hidden; }
-        #timer-bar { width: 100%; height: 100%; background: #238636; transition: width linear; }
-        #grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .cell { background: #21262d; border: 1px solid #30363d; border-radius: 8px; padding: 20px 0; font-size: 24px; color: #fff; cursor: pointer; }
-        #start-btn { background: #238636; color: white; border: none; border-radius: 8px; padding: 15px; font-size: 18px; width: 100%; cursor: pointer; display: none; }
-        .bonus-grid { display: none; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        :root { --primary: #e94560; --bg: #1a1a2e; --panel: #16213e; --text: #e9e9e9; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+        
+        #game-container { width: 100%; max-width: 400px; padding: 20px; display: flex; flex-direction: column; }
+        
+        /* Top Bar */
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .stat-box { background: rgba(255,255,255,0.05); padding: 8px 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-box b { color: var(--primary); font-size: 18px; }
+        
+        /* Menu Buttons */
+        .menu-btns { display: flex; gap: 10px; margin-bottom: 15px; }
+        .menu-btns button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--primary); background: transparent; color: white; cursor: pointer; font-size: 12px; text-transform: uppercase; }
+
+        /* Question Area */
+        #question-box { flex: 1; max-height: 150px; background: var(--panel); border-radius: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 32px; font-weight: bold; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); text-align: center; }
+        
+        #timer-area { width: 100%; height: 6px; background: #333; border-radius: 3px; margin-bottom: 20px; overflow: hidden; }
+        #timer-bar { width: 100%; height: 100%; background: var(--primary); transition: width linear; }
+
+        /* Grid */
+        #grid, #bonus-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .cell { aspect-ratio: 1.2; background: var(--panel); border: none; color: white; font-size: 28px; font-weight: bold; border-radius: 15px; box-shadow: 0 4px 0 #0f3460; transition: 0.1s; }
+        .cell:active { transform: translateY(3px); box-shadow: 0 1px 0 #0f3460; background: var(--primary); }
+        #start-btn { width: 100%; padding: 20px; background: var(--primary); color: white; border: none; border-radius: 15px; font-size: 20px; font-weight: bold; cursor: pointer; display: none; margin-top: 20px; }
+
+        /* Overlay Panels */
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 100; }
+        .panel { width: 85%; max-width: 320px; background: var(--panel); padding: 25px; border-radius: 20px; text-align: center; border: 1px solid var(--primary); }
+        .panel h2 { color: var(--primary); margin-top: 0; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 14px; }
+        .shop-item button { background: var(--primary); border: none; color: white; padding: 5px 10px; border-radius: 5px; }
+
+        /* Bonus UI */
+        .bonus-q-container { display: flex; align-items: center; gap: 10px; }
+        .q-mark { color: var(--primary); font-size: 40px; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="status-bar">
-        <span>💰 <b id="tokens-count">0</b></span>
-        <span>❤️ <b id="lives-count">12</b></span>
+    <div class="top-bar">
+        <div class="stat-box">💰 <b id="tokens-count">0</b> <small id="mult-label">x1</small></div>
+        <div class="stat-box">❤️ <b id="lives-count">12</b></div>
     </div>
-    
+
+    <div class="menu-btns">
+        <button onclick="showPanel('profile-panel')">👤 Profile</button>
+        <button onclick="showPanel('shop-panel')">🛒 Shop</button>
+    </div>
+
     <div id="question-box">LOADING...</div>
     <div id="timer-area"><div id="timer-bar"></div></div>
 
     <div id="grid">
-        <button class="cell" onclick="makeMove(1)">1</button>
-        <button class="cell" onclick="makeMove(2)">2</button>
-        <button class="cell" onclick="makeMove(3)">3</button>
-        <button class="cell" onclick="makeMove(4)">4</button>
-        <button class="cell" onclick="makeMove(5)">5</button>
-        <button class="cell" onclick="makeMove(6)">6</button>
-        <button class="cell" onclick="makeMove(7)">7</button>
-        <button class="cell" onclick="makeMove(8)">8</button>
-        <button class="cell" onclick="makeMove(9)">9</button>
+        <button class="cell" onclick="handleMove(1)">1</button>
+        <button class="cell" onclick="handleMove(2)">2</button>
+        <button class="cell" onclick="handleMove(3)">3</button>
+        <button class="cell" onclick="handleMove(4)">4</button>
+        <button class="cell" onclick="handleMove(5)">5</button>
+        <button class="cell" onclick="handleMove(6)">6</button>
+        <button class="cell" onclick="handleMove(7)">7</button>
+        <button class="cell" onclick="handleMove(8)">8</button>
+        <button class="cell" onclick="handleMove(9)">9</button>
     </div>
 
-    <div id="bonus-grid" class="bonus-grid">
-        <button class="cell" onclick="makeBonusMove('<')">&lt;</button>
-        <button class="cell" onclick="makeBonusMove('=')">=</button>
-        <button class="cell" onclick="makeBonusMove('>')">&gt;</button>
+    <div id="bonus-grid" style="display: none;">
+        <button class="cell" onclick="handleBonus('<')">&lt;</button>
+        <button class="cell" onclick="handleBonus('=')">=</button>
+        <button class="cell" onclick="handleBonus('>')">&gt;</button>
     </div>
 
-    <button id="start-btn" onclick="startNewSet()">START SET</button>
+    <button id="start-btn" onclick="startNewSet()">START NEXT SET</button>
+</div>
+
+<!-- Оверлеи -->
+<div id="profile-panel" class="overlay" onclick="closePanels()">
+    <div class="panel" onclick="event.stopPropagation()">
+        <h2>PROFILE</h2>
+        <p style="font-size: 10px; opacity: 0.6;">ID: <span id="user-id-display">...</span></p>
+        <p>Your Balance: <b id="p-tokens">0</b></p>
+        <button onclick="copyLink()" style="width:100%; padding:10px; border-radius:10px; background:#444; color:white; border:none;">🔗 Copy Invite Link</button>
+        <p style="font-size: 10px; color: #4ade80;">Invited friends give you +500 tokens!</p>
+    </div>
+</div>
+
+<div id="shop-panel" class="overlay" onclick="closePanels()">
+    <div class="panel" onclick="event.stopPropagation()">
+        <h2>SHOP</h2>
+        <div class="shop-item"><span>Multiplier X2</span><button onclick="buyBoost(2, 2000)">2000</button></div>
+        <div class="shop-item"><span>Multiplier X3</span><button onclick="buyBoost(3, 10000)">10k</button></div>
+        <div class="shop-item"><span>Multiplier X5</span><button onclick="buyBoost(5, 50000)">50k</button></div>
+        <p style="font-size: 10px;">Current Multiplier: <b id="p-mult">1</b></p>
+    </div>
 </div>
 
 <script type="module">
     import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
     const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co';
-    // ВНИМАНИЕ: Проверьте, чтобы в ключе не было лишних пробелов или знаков \
-    const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'; 
+    const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'; // Используем ваш текущий ключ
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Глобальное состояние
     window.userId = null;
     window.tokens = 0;
     window.multiplier = 1;
 
     let allQuestions = [];
-    let currentQuestionIndex = 0;
-    let currentAnswer = 0;
+    let curQ = 0;
     let lives = 12;
     let setProgress = 0;
     let canClick = false;
     let timerId;
-    let bonusAnswer = '';
+    let bonusAns = '';
 
-    async function startApp() {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            let user = session ? session.user : null;
+    // --- ИНИЦИАЛИЗАЦИЯ ---
+    async function init() {
+        const { data: { session } } = await supabase.auth.getSession();
+        let user = session ? session.user : null;
 
-            if (!user) {
-                const { data, error } = await supabase.auth.signInAnonymously();
-                if (error) throw error;
-                user = data.user;
-            }
-
-            window.userId = user.id;
-            await loadUserData();
-            await loadQuestions();
-        } catch (err) {
-            console.error(err);
-            document.getElementById('question-box').innerText = 'AUTH ERROR';
+        if (!user) {
+            const { data } = await supabase.auth.signInAnonymously();
+            user = data.user;
         }
+
+        window.userId = user.id;
+        document.getElementById('user-id-display').innerText = user.id;
+
+        await loadProfile();
+        await loadQuestions();
     }
 
-    async function loadUserData() {
-        let { data: profile } = await supabase.from('profiles').select('*').eq('id', window.userId).single();
-        
-        if (!profile) {
+    async function loadProfile() {
+        let { data: p } = await supabase.from('profiles').select('*').eq('id', window.userId).single();
+        if (!p) {
             const { data } = await supabase.from('profiles').insert([{ id: window.userId, tokens: 0, multiplier: 1 }]).select().single();
-            profile = data;
+            p = data;
         }
-
-        if (profile) {
-            window.tokens = profile.tokens;
-            window.multiplier = profile.multiplier;
-            updateUI();
-        }
+        window.tokens = p.tokens;
+        window.multiplier = p.multiplier;
+        updateUI();
     }
 
     async function loadQuestions() {
@@ -112,92 +158,127 @@
         document.getElementById('start-btn').style.display = 'block';
     }
 
+    // --- ЛОГИКА ИГРЫ ---
     window.startNewSet = function() {
-        setProgress = 0;
-        lives = 12;
+        setProgress = 0; lives = 12;
         document.getElementById('start-btn').style.display = 'none';
         document.getElementById('grid').style.display = 'grid';
         document.getElementById('bonus-grid').style.display = 'none';
-        updateUI();
-        nextQuestion();
+        nextQ();
     };
 
-    function nextQuestion() {
-        if (setProgress >= 9) {
-            startBonus();
-            return;
-        }
-        const qData = allQuestions[currentQuestionIndex];
-        currentAnswer = qData.a;
+    function nextQ() {
+        if (setProgress >= 9) return startBonus();
+        
+        canClick = false;
+        const qData = allQuestions[curQ];
         document.getElementById('question-box').innerText = qData.q;
-        document.getElementById('question-box').style.color = '#fff';
+        document.getElementById('question-box').style.color = 'white';
         
         startTimer(qData.t);
         setProgress++;
-        canClick = true;
+        setTimeout(() => { canClick = true; }, 100);
     }
 
-    window.makeMove = function(num) {
+    window.handleMove = function(num) {
         if (!canClick) return;
         canClick = false;
         clearTimeout(timerId);
 
-        if (num === currentAnswer) {
+        if (num === allQuestions[curQ].a) {
             window.tokens += (10 * window.multiplier);
-            document.getElementById('question-box').style.color = '#2ecc71';
-            updateUI();
-            saveToDb();
-            currentQuestionIndex++;
-            setTimeout(nextQuestion, 500);
+            document.getElementById('question-box').style.color = '#4ade80';
+            save();
+            curQ++;
+            setTimeout(nextQ, 400);
         } else {
             lives--;
-            document.getElementById('question-box').style.color = '#e74c3c';
-            updateUI();
-            if (lives <= 0) {
-                alert('GAME OVER');
-                location.reload();
-            } else {
-                currentQuestionIndex++;
-                setTimeout(nextQuestion, 500);
-            }
+            document.getElementById('question-box').style.color = '#ff4757';
+            if (lives <= 0) { alert('GAME OVER'); location.reload(); }
+            else { curQ++; setTimeout(nextQ, 400); }
+        }
+        updateUI();
+    };
+
+    // --- БОНУСНЫЙ РАУНД ---
+    function startBonus() {
+        document.getElementById('grid').style.display = 'none';
+        document.getElementById('bonus-grid').style.
+display = 'grid';
+        const qA = allQuestions[Math.floor(Math.random()*allQuestions.length)];
+        const qB = allQuestions[Math.floor(Math.random()*allQuestions.length)];
+        
+        bonusAns = qA.a < qB.a ? '<' : (qA.a > qB.a ? '>' : '=');
+        
+        document.getElementById('question-box').innerHTML = `
+            <div class="bonus-q-container">
+                <div>${qA.q}</div><div class="q-mark">?</div><div>${qB.q}</div>
+            </div>`;
+        startTimer(7000);
+        canClick = true;
+    }
+
+    window.handleBonus = function(sym) {
+        if (!canClick) return;
+        clearTimeout(timerId);
+        if (sym === bonusAns) {
+            window.tokens += (500 * window.multiplier);
+            alert('BONUS WIN! +500');
+            save();
+            window.startNewSet();
+        } else {
+            alert('BONUS LOST');
+            window.startNewSet();
         }
     };
 
+    // --- ВСПОМОГАТЕЛЬНОЕ ---
     function startTimer(ms) {
         const bar = document.getElementById('timer-bar');
-        bar.style.transition = 'none';
-        bar.style.width = '100%';
+        bar.style.transition = 'none'; bar.style.width = '100%';
         setTimeout(() => {
             bar.style.transition = 'width ' + (ms/1000) + 's linear';
             bar.style.width = '0%';
-        }, 10);
-        timerId = setTimeout(() => {
-            window.makeMove(-1);
-        }, ms);
+        }, 50);
+        timerId = setTimeout(() => { window.handleMove(-1); }, ms);
     }
 
-    async function saveToDb() {
-        await supabase.from('profiles').update({ tokens: window.tokens }).eq('id', window.userId);
+    async function save() {
+        await supabase.from('profiles').update({ tokens: window.tokens, multiplier: window.multiplier }).eq('id', window.userId);
     }
 
     function updateUI() {
         document.getElementById('tokens-count').innerText = window.tokens;
         document.getElementById('lives-count').innerText = lives;
+        document.getElementById('mult-label').innerText = 'x' + window.multiplier;
+        document.getElementById('p-tokens').innerText = window.tokens;
+        document.getElementById('p-mult').innerText = window.multiplier;
     }
 
-    function startBonus() {
-        document.getElementById('grid').style.display = 'none';
-        document.getElementById('bonus-grid').style.display = 'grid';
-        document.getElementById('question-box').innerText = 'BONUS: ?';
-    }
-
-    window.makeBonusMove = function(s) {
-        alert('Bonus step clicked: ' + s);
-        window.startNewSet();
+    // --- МЕНЮ И МАГАЗИН ---
+    window.showPanel = function(id) { document.getElementById(id).style.display = 'flex'; };
+    window.closePanels = function() { 
+        document.getElementById('profile-panel').style.display = 'none';
+        document.getElementById('shop-panel').style.display = 'none';
+    };
+    
+    window.buyBoost = async function(m, cost) {
+        if (window.tokens >= cost) {
+            window.tokens -= cost;
+            window.multiplier = m;
+            await save();
+            updateUI();
+            alert('Boost X' + m + ' Activated!');
+        } else { alert('Not enough tokens!'); }
     };
 
-    startApp();
-</script>
+    window.copyLink = function() {
+        const link = 'https://galilelov.github.io/quipper-qip-token/?ref=' + window.userId;
+        navigator.clipboard.writeText(link);
+        alert('Link Copied!');
+    };
 
+    init();
+</script>
 </body>
 </html>
