@@ -27,7 +27,6 @@
         .menu-row { display: flex; gap: 8px; margin-bottom: 10px; }
         .menu-row button { flex: 1; padding: 8px; background: transparent; border: 1px solid #30363d; color: #8b949e; border-radius: 8px; font-size: 11px; font-weight: bold; }
 
-        /* ЭКРАН СТАРТА */
         #start-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
         #big-start-btn { 
             width: 100%; padding: 25px; font-size: 22px; font-weight: 900; 
@@ -36,17 +35,14 @@
         }
         #big-start-btn:active { transform: translateY(3px); box-shadow: 0 3px 0 #a02d40; }
 
-        /* ИГРОВОЙ ЭКРАН */
         #play-screen { display: none; flex-direction: column; height: 100%; }
         
-        /* УКОРОЧЕННЫЙ БОКС ВОПРОСА */
         #question-box { 
             height: 85px; background: var(--panel); border-radius: 15px; 
             display: flex; align-items: center; justify-content: center; 
             font-size: 28px; font-weight: bold; margin-bottom: 8px;
             border: 1px solid #30363d; text-align: center; overflow: hidden;
         }
-
         #timer-area { width: 100%; height: 5px; background: #21262d; border-radius: 3px; margin-bottom: 15px; overflow: hidden; }
         #timer-bar { width: 100%; height: 100%; background: var(--primary); }
 
@@ -59,11 +55,9 @@
         }
         .cell:active { transform: translateY(2px); box-shadow: 0 2px 0 #000; background: var(--primary); border-color: var(--primary); }
 
-        /* БОНУСНЫЙ СТИЛЬ */
         .q-mark { color: var(--accent); font-size: 38px; margin: 0 10px; animation: pulse 0.8s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
-        /* ОВЕРЛЕИ */
         .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 1000; }
         .panel { background: var(--panel); width: 85%; padding: 20px; border-radius: 15px; border: 1px solid #30363d; text-align: center; }
         .panel button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
@@ -117,11 +111,13 @@
         <p style="font-size:10px; color:#8b949e; word-break:break-all;" id="u-id">ID: ...</p>
         <button onclick="copyLink()" style="background:#21262d; color:white;">COPY INVITE LINK</button>
     </div>
-    <div class="panel" id="shop-panel" onclick="event.stopPropagation()" style="display:none;">
+    <div class="panel" id="shop-panel" onclick="event.stopPropagation()" style=
+"display:none;">
         <h3>BOOST SHOP</h3>
-        <button onclick="buy(2, 2000)" style="background:#238636; color:white;">X2 Boost (2000)</button>
-        <button onclick="buy(3, 10000)" style="background:#238636; color:white;">X3 Boost (10k)</button>
-        <button onclick="buy(5, 50000)" style="background:#238636; color:white;">X5 Boost (50k)</button>
+        <button onclick="buy(2, 50000)" style="background:#238636; color:white;">X2 Boost (50k)</button>
+        <button onclick="buy(3, 200000)" style="background:#238636; color:white;">X3 Boost (200k)</button>
+        <button onclick="buy(4, 600000)" style="background:#238636; color:white;">X4 Boost (600k)</button>
+        <button onclick="buy(5, 1000000)" style="background:#238636; color:white;">X5 Boost (1M)</button>
     </div>
 </div>
 
@@ -193,12 +189,12 @@
         clearTimeout(timer);
 
         if (n === curAns) {
-            tokens += (5 * multiplier); // Награда 5 токенов
+            tokens += (5 * multiplier);
             document.getElementById('question-box').style.color = '#4ade80';
             save();
             setTimeout(nextQuestion, 400);
         } else {
-            tokens = Math.max(0, tokens - 1); // Штраф -1
+            tokens = Math.max(0, tokens - 1);
             lives--;
             document.getElementById('question-box').style.color = '#ff4757';
             if (lives <= 0) { alert("GAME OVER!"); location.reload(); }
@@ -211,8 +207,7 @@
         const bar = document.getElementById('timer-bar');
         bar.style.transition = 'none'; bar.style.width = '100%';
         setTimeout(() => {
-            bar.style.transition = `width ${
-ms/1000}s linear`;
+            bar.style.transition = `width ${ms/1000}s linear`;
             bar.style.width = '0%';
         }, 50);
         timer = setTimeout(() => handleInput(-1), ms);
@@ -222,7 +217,6 @@ ms/1000}s linear`;
         document.getElementById('grid').style.display = 'none';
         document.getElementById('bonus-grid').style.display = 'grid';
         
-        // Фильтруем только короткие вопросы для бонуса
         const shortQ = questions.filter(q => q.q.length <= 7);
         const source = shortQ.length > 5 ? shortQ : questions;
         
@@ -247,7 +241,7 @@ ms/1000}s linear`;
             save();
             startNewSet();
         } else {
-            tokens = Math.max(0, tokens - 1); // Штраф даже в бонусе
+            tokens = Math.max(0, tokens - 1);
             alert("BONUS LOST!");
             startNewSet();
         }
