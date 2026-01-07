@@ -119,49 +119,30 @@
     const supabase = createClient(supabaseUrl, supabaseKey)
 
     async function startApp() {
-    console.log("Старт...");
-    try {
-        const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-        if (authError) throw authError;
-
-        const userId = authData.user.id;
-        console.log("Ваш ID:", userId);
-
-        // 1. Просто проверяем наличие профиля без строгих фильтров
-        const { data: profiles, error: selectError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', userId);
-
-        if (selectError) {
-            alert("ОШИБКА ЧТЕНИЯ: " + selectError.message);
+    console.log("Проверка сессии...");
+    
+    // Сначала проверяем, есть ли уже активная сессия в браузере
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    let user;
+    if (session) {
+        user = session.user;
+        console.log("Сессия найдена:", user.id);
+    } else {
+        console.log("Сессии нет, входим анонимно...");
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+            // Если всё еще лимит, просто выходим
+            if (error.status === 429) {
+                alert("Слишком много попыток! Подождите 5 минут.");
+            }
             return;
         }
-
-        // 2. Если массив пустой — создаем профиль
-        if (profiles.length === 0) {
-            console.log("Создаю запись...");
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert([{ id: userId, tokens: 0, multiplier: 1 }]);
-
-            if (insertError) {
-                alert("ОШИБКА ЗАПИСИ: " + insertError.message);
-            } else {
-                alert("УРА! ЗАПИСЬ СОЗДАНА! Обновите страницу Supabase.");
-                location.reload(); // Перезагрузим, чтобы подтянуть данные
-            }
-        } else {
-            alert("СВЯЗЬ ЕСТЬ! Вы уже в базе. Можно играть.");
-            // Здесь запускайте вашу игру
-            window.userId = userId;
-            loadQuestions(); 
-        }
-
-    } catch (err) {
-        alert("ОШИБКА СКРИПТА: " + err.message);
-        console.error(err);
+        user = data.user;
     }
+
+    const userId = user.id;
+    // Дальше ваш код загрузки профиля...
 }
 
     startApp();
@@ -306,6 +287,7 @@
 </script>
 </body>
 </html>
+
 
 
 
