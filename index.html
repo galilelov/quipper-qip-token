@@ -147,30 +147,23 @@
     const currentUserId = userId;
 
     if (referrerId && currentUserId && referrerId !== currentUserId) {
-        try {
-            // Используем конструктор URL, чтобы избежать ошибки NS_ERROR_DOM_BAD_URI
-            const baseUrl = "https://gjfbsfkvyicvxqbzduud.supabase.co/functions/v1/awardReferral";
-            const finalUrl = `${baseUrl}?ref=${encodeURIComponent(referrerId)}&uid=${encodeURIComponent(currentUserId)}`;
-            
-            console.log("Calling referral function:", finalUrl);
+        console.log("Attempting to award referral bonus...");
 
-            const response = await fetch(finalUrl, {
-                method: 'GET',
-                // Мы УБРАЛИ заголовки Authorization, чтобы браузер не блокировал запрос
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+        // ВЫЗЫВАЕМ ФУНКЦИЮ БАЗЫ ДАННЫХ (RPC)
+        const { data, error } = await supabase.rpc('award_referral_bonus', {
+            referrer_uuid: referrerId,
+            referred_uuid: currentUserId
+        });
 
-            const data = await response.json();
-            console.log("Server response:", data);
-
+        if (error) {
+            console.error("RPC Error:", error.message);
+        } else {
+            console.log("Result:", data);
             if (data.success) {
-                console.log("Success! Referral awarded.");
-                // Можно добавить: alert("Welcome! You've been referred.");
+                alert("You were referred! Bonus awarded to your friend.");
+                // Обновляем данные на экране
+                await fetchProfileDataAndRefreshUI(); 
             }
-        } catch (error) {
-            console.error("Network error or block:", error);
         }
     }
 }
