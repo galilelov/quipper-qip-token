@@ -141,19 +141,15 @@
     }
 
     // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
-            async function handleReferralLink() {
+        async function handleReferralLink() {
         const urlParams = new URLSearchParams(window.location.search);
         const referrerId = urlParams.get('ref');
-        const currentUserId = userId;
+        const currentUserId = userId; // Ваш текущий ID
 
-        if (referrerId && currentUserId) {
-            if (referrerId === currentUserId) {
-                console.log("Self-referral ignored");
-                return;
-            }
-
-            // Всплывающее окно для теста
-            alert("Обнаружена ссылка! Пытаюсь начислить бонус...");
+        // Проверяем, что оба ID есть, и они разные
+        if (referrerId && currentUserId && referrerId !== currentUserId) {
+            // Всплывающее окно для диагностики
+            alert(`Пытаюсь начислить бонус. Пригласивший: ${referrerId}, Приглашенный: ${currentUserId}`);
 
             const { data, error } = await supabase.rpc('award_referral_bonus', {
                 referrer_uuid: referrerId,
@@ -161,15 +157,27 @@
             });
 
             if (error) {
-                alert("Ошибка базы данных: " + error.message);
+                alert("Ошибка RPC: " + error.message);
+                console.error("RPC Error:", error.message);
             } else if (data) {
+                console.log("RPC Result:", data);
                 if (data.success) {
-                    alert("УРА! Бонус сработал!");
-                    await fetchProfileDataAndRefreshUI();
+                    alert("Бонус успешно начислен!");
+                    // Обновляем отображение данных, чтобы игрок увидел токены
+                    await fetchProfileDataAndRefreshUI(); 
                 } else {
-                    alert("Инфо: " + data.message);
+                    alert("Сообщение: " + data.message);
                 }
+            } else {
+                // Если data пустой, а ошибки нет
+                alert("Неожиданный результат от RPC. Проверьте логи.");
+                console.error("Unexpected RPC result: data is empty, no error.");
             }
+        } else {
+            // Если условия не выполнены (например, referrerId или currentUserId пустые)
+            if (!referrerId) console.log("Referral link skipped: referrerId is missing.");
+            if (!currentUserId) console.log("Referral link skipped: currentUserId is missing.");
+            if (referrerId === currentUserId) console.log("Referral link ignored: self-referral.");
         }
     }
 
@@ -366,5 +374,3 @@
 </script>
 </body>
 </html>
-
-
