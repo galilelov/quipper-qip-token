@@ -210,59 +210,67 @@
     }
 
 
-        async function init() {
+            async function init() {
         try {
-            // 1. Загружаем вопросы
             const qRes = await fetch('questions.json?v=' + Date.now());
             if (!qRes.ok) throw new Error("questions.json not found");
             questions = await qRes.json();
-            console.log("Questions loaded:", questions.length);
+            console.log("Questions loaded.");
 
-            // 2. Авторизация (анонимно, если нет сессии)
             const { data: { session } } = await supabase.auth.getSession();
             let user = session ? session.user : (await supabase.auth.signInAnonymously()).data.user;
             userId = user.id;
             document.getElementById('u-id').innerText = "ID: " + userId;
             console.log("User ID:", userId);
 
-            // 3. Получаем или создаем профиль
+            // ПРОВЕРЯЕМ ИЛИ СОЗДАЕМ ПРОФИЛЬ
             const { data: p, error: pError } = await supabase
                 .from('profiles')
-                .select('tokens, multiplier') // Убедитесь, что имена колонок правильные
+                .select('tokens, multiplier, invited_by') // Важно: SELECT invited_by
                 .eq('id', userId)
-                .single(); // Используем single(), если уверены, что ID уникален
+                .single();
 
-            if (pError && pError.code !== 'PGRST116') { // PGRST116 = Not found
+            if (pError && pError.code !== 'PGRST116') { 
                 console.error("Profile fetch error:", pError.message);
             }
 
             if (p) { 
                 tokens = p.tokens; 
                 multiplier = p.multiplier; 
-                console.log(`Profile loaded. Tokens: ${tokens}, Multiplier: ${multiplier}`);
+                console.log(`Profile loaded. Tokens: ${tokens}, Multiplier: ${multiplier}, Invited by: ${p.invited_by}`);
+                // Если профиль уже существует и у него уже есть invited_by, мы ничего не делаем с рефералкой.
+                // Но если invited_by пустой, мы можем попробовать её вызвать.
+                if (!p.invited_by) {
+                    console.log("Profile exists, but not invited. Scheduling referral check...");
+                    setTimeout(async () => {
+                        await handleReferralLink();
+                    }, 3000);
+                } else {
+                    console.log("Profile exists and already invited. Skipping referral check.");
+                }
             } else { 
                 console.log("Profile not found, creating new profile...");
-                // Создаем профиль, если его нет
                 await supabase.from('profiles').insert([
-                    { id: userId, tokens: 0, multiplier: 1 } // Убедитесь, что эти колонки существуют
+                    { id: userId, tokens: 0, multiplier: 1, invited_by: null, referred_by: null, referrals_count: 0 } // Явно устанавливаем null
                 ]); 
                 tokens = 0;
                 multiplier = 1;
-                console.log("New profile created. Tokens: 0, Multiplier: 1");
+                console.log("New profile created. Tokens: 0, Multiplier: 1, Invited by: null, Referred by: null");
+                
+                // !!! ВАЖНО: Здесь мы ПОЧТИ сразу пытаемся вызвать реферал, но с задержкой !!!
+                console.log("Scheduling referral check after profile creation...");
+                setTimeout(async () => {
+                    await handleReferralLink();
+                }, 100); // Задержка 0,1 секунды
             }
             
-            updateUI(); // Обновляем интерфейс (токены, кнопка старт)
-            
-            // 4. ЗАПУСКАЕМ РЕФЕРАЛЬНУЮ ФУНКЦИЮ С ЗАДЕРЖКОЙ
-            console.log("Scheduling handleReferralLink with 3-second delay...");
-            setTimeout(async () => {
-                await handleReferralLink();
-            }, 1000); // Задержка в 1000 мс = 1 секунды
+            updateUI(); 
 
         } catch (error) {
             console.error("CRITICAL ERROR DURING INIT:", error);
         }
     }
+
 
 
     // --- ГЛОБАЛЬНЫЕ ФУНКЦИИ (доступные из HTML) ---
