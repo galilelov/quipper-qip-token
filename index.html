@@ -191,23 +191,48 @@
 
 
     async function init() {
-        const { data: { session } } = await supabase.auth.getSession();
-        let user = session ? session.user : (await supabase.auth.signInAnonymously()).data.user;
-        userId = user.id;
-        document.getElementById('u-id').innerText = "ID: " + userId;
+        try {
+            // 1. Сначала загружаем вопросы
+            const qRes = await fetch('questions.json?v=' + Date.now());
+            questions = await qRes.json();
 
-        const { data: p } = await supabase.from('profiles').select('*').eq('id', userId).single();
-        if (p) { tokens = p.tokens; multiplier = p.multiplier; }
-else { await supabase.from('profiles').insert([{ id: userId, tokens: 0, multiplier: 1 }]); }
-        
-        updateUI(); 
-        
-        // !!! ВАЖНО: Вызов handleReferralLink после установки userId !!!
-        await handleReferralLink(); 
+            // 2. Получаем или создаем пользователя (анонимно)
+            const { data: { session } } = await supabase.auth.getSession();
+            let user = session ? session.user : (await supabase.auth.signInAnonymously()).data.user;
+            userId = user.id;
+            document.getElementById('u-id').innerText = "ID: " + userId;
 
-        // ИСПРАВЛЕНО: Объявление const qRes только один раз
-        const qRes = await fetch('questions.json?v=' + Date.now());
-        questions = await qRes.json();
+            // 3. ПРОВЕРЯЕМ: есть ли профиль в базе?
+            // Мы используем .maybeSingle(), чтобы не было ошибки, если профиля нет
+            const { data: p, error: pError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+
+            if (p) { 
+                // Если профиль ЕСТЬ, загружаем токены и множитель из базы
+                tokens = p.tokens; 
+                multiplier = p.multiplier; 
+                console.log("Profile loaded. Tokens:", tokens);
+            } else { 
+                // Если профиля НЕТ, создаем одну единственную запись
+                console.log("No profile found, creating new one...");
+                await supabase.from('profiles').insert([
+                    { id: userId, tokens: 0, multiplier: 1 }
+                ]); 
+                tokens = 0;
+                multiplier = 1;
+            }
+            
+            updateUI(); 
+            
+            // 4. Запускаем проверку реферальной ссылки
+            await handleReferralLink(); 
+
+        } catch (error) {
+            console.error("Initialization error:", error);
+        }
     }
 
     // --- ГЛОБАЛЬНЫЕ ФУНКЦИИ (доступные из HTML) ---
