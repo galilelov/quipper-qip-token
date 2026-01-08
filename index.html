@@ -141,45 +141,52 @@
     }
 
     // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
-        async function handleReferralLink() {
+            async function handleReferralLink() {
         const urlParams = new URLSearchParams(window.location.search);
         const referrerId = urlParams.get('ref');
-        const currentUserId = userId; // Ваш текущий ID
+        const currentUserId = userId;
 
-        // Проверяем, что оба ID есть, и они разные
-        if (referrerId && currentUserId && referrerId !== currentUserId) {
-            // Всплывающее окно для диагностики
-            alert(`Пытаюсь начислить бонус. Пригласивший: ${referrerId}, Приглашенный: ${currentUserId}`);
+        console.log(`handleReferralLink called. referrerId: ${referrerId}, currentUserId: ${currentUserId}`);
 
-            const { data, error } = await supabase.rpc('award_referral_bonus', {
-                referrer_uuid: referrerId,
-                referred_uuid: currentUserId
-            });
+        if (referrerId && currentUserId) {
+            if (referrerId === currentUserId) {
+                console.log("Self-referral detected. Skipping.");
+                return; // Ничего не делаем, если это тот же пользователь
+            }
 
-            if (error) {
-                alert("Ошибка RPC: " + error.message);
-                console.error("RPC Error:", error.message);
-            } else if (data) {
-                console.log("RPC Result:", data);
-                if (data.success) {
-                    alert("Бонус успешно начислен!");
-                    // Обновляем отображение данных, чтобы игрок увидел токены
-                    await fetchProfileDataAndRefreshUI(); 
+            alert(`Пытаюсь начислить бонус за приглашение ${referrerId} пользователем ${currentUserId}...`);
+
+            try {
+                const { data, error } = await supabase.rpc('award_referral_bonus', {
+                    referrer_uuid: referrerId,
+                    referred_uuid: currentUserId
+                });
+
+                if (error) {
+                    alert("Ошибка RPC: " + error.message);
+                    console.error("RPC Error:", error.message);
+                } else if (data) {
+                    console.log("RPC Result:", data);
+                    if (data.success) {
+                        alert("Бонус успешно начислен!");
+                        await fetchProfileDataAndRefreshUI(); // Обновляем UI
+                    } else {
+                        alert("Сообщение от сервера: " + data.message);
+                    }
                 } else {
-                    alert("Сообщение: " + data.message);
+                    alert("Неожиданный результат от RPC. Нет данных и нет ошибки.");
+                    console.error("Unexpected RPC result: data is empty, no error.");
                 }
-            } else {
-                // Если data пустой, а ошибки нет
-                alert("Неожиданный результат от RPC. Проверьте логи.");
-                console.error("Unexpected RPC result: data is empty, no error.");
+            } catch (rpcCallError) {
+                // Ловим ошибки, если сам вызов fetch/rpc упал
+                alert("Ошибка при вызове RPC: " + rpcCallError.message);
+                console.error("Error during RPC call:", rpcCallError.message);
             }
         } else {
-            // Если условия не выполнены (например, referrerId или currentUserId пустые)
-            if (!referrerId) console.log("Referral link skipped: referrerId is missing.");
-            if (!currentUserId) console.log("Referral link skipped: currentUserId is missing.");
-            if (referrerId === currentUserId) console.log("Referral link ignored: self-referral.");
+            console.log("handleReferralLink skipped: referrerId or currentUserId is missing or they are the same.");
         }
     }
+
 
     // --- КОНЕЦ handleReferralLink ---
 
@@ -197,50 +204,60 @@
     }
 
 
-    async function init() {
+        async function init() {
         try {
-            // 1. Сначала загружаем вопросы
+            // 1. Загружаем вопросы
             const qRes = await fetch('questions.json?v=' + Date.now());
+            if (!qRes.ok) throw new Error("questions.json not found");
             questions = await qRes.json();
+            console.log("Questions loaded:", questions.length);
 
-            // 2. Получаем или создаем пользователя (анонимно)
+            // 2. Авторизация (анонимно, если нет сессии)
             const { data: { session } } = await supabase.auth.getSession();
             let user = session ? session.user : (await supabase.auth.signInAnonymously()).data.user;
             userId = user.id;
             document.getElementById('u-id').innerText = "ID: " + userId;
+            console.log("User ID:", userId);
 
-            // 3. ПРОВЕРЯЕМ: есть ли профиль в базе?
-            // Мы используем .maybeSingle(), чтобы не было ошибки, если профиля нет
+            // 3. Получаем или создаем профиль
             const { data: p, error: pError } = await supabase
                 .from('profiles')
-                .select('*')
+                .select('tokens, multiplier') // Убедитесь, что имена колонок правильные
                 .eq('id', userId)
-                .maybeSingle();
+                .single(); // Используем single(), если уверены, что ID уникален
+
+            if (pError && pError.code !== 'PGRST116') { // PGRST116 = Not found
+                console.error("Profile fetch error:", pError.message);
+            }
 
             if (p) { 
-                // Если профиль ЕСТЬ, загружаем токены и множитель из базы
                 tokens = p.tokens; 
                 multiplier = p.multiplier; 
-                console.log("Profile loaded. Tokens:", tokens);
+                console.log(`Profile loaded. Tokens: ${tokens}, Multiplier: ${multiplier}`);
             } else { 
-                // Если профиля НЕТ, создаем одну единственную запись
-                console.log("No profile found, creating new one...");
+                console.log("Profile not found, creating new profile...");
+                // Создаем профиль, если его нет
                 await supabase.from('profiles').insert([
-                    { id: userId, tokens: 0, multiplier: 1 }
+                    { id: userId, tokens: 0, multiplier: 1 } // Убедитесь, что эти колонки существуют
                 ]); 
                 tokens = 0;
                 multiplier = 1;
+                console.log("New profile created. Tokens: 0, Multiplier: 1");
             }
             
-            updateUI(); 
+            updateUI(); // Обновляем интерфейс (токены, кнопка старт)
             
-            // 4. Запускаем проверку реферальной ссылки
-            await handleReferralLink(); 
+            // 4. ЗАПУСКАЕМ РЕФЕРАЛЬНУЮ ФУНКЦИЮ С ЗАДЕРЖКОЙ
+            console.log("Scheduling handleReferralLink with 3-second delay...");
+            setTimeout(async () => {
+                await handleReferralLink();
+            }, 3000); // Задержка в 3000 мс = 3 секунды
 
         } catch (error) {
-            console.error("Initialization error:", error);
+            console.error("CRITICAL ERROR DURING INIT:", error);
         }
     }
+
 
     // --- ГЛОБАЛЬНЫЕ ФУНКЦИИ (доступные из HTML) ---
     window.startFullGame = function() {
