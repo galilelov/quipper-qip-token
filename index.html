@@ -142,41 +142,38 @@
 
     // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
     async function handleReferralLink() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const referrerId = urlParams.get('ref');
-        const currentUserId = userId; // Используем глобальный userId
+    const urlParams = new URLSearchParams(window.location.search);
+    const referrerId = urlParams.get('ref');
+    const currentUserId = userId;
 
-        if (referrerId && currentUserId) {
-            if (referrerId !== currentUserId) {
-                try {
-                    const functionUrl = `https://gjfbsfkvyicvxqbzduud.supabase.co/functions/v1/awardReferral?ref=${referrerId}&uid=${currentUserId}`;
-                    
-                    // !!! ВАЖНОЕ ИЗМЕНЕНИЕ: ДОБАВЛЕНИЕ HEADERS !!!
-                    const response = await fetch(functionUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${supabaseKey}` // Теперь этот заголовок будет отправляться
-                        }
-                    });
-                    // !!! КОНЕЦ ВАЖНОГО ИЗМЕНЕНИЯ !!!
+    if (referrerId && currentUserId && referrerId !== currentUserId) {
+        try {
+            // Используем конструктор URL, чтобы избежать ошибки NS_ERROR_DOM_BAD_URI
+            const baseUrl = "https://gjfbsfkvyicvxqbzduud.supabase.co/functions/v1/awardReferral";
+            const finalUrl = `${baseUrl}?ref=${encodeURIComponent(referrerId)}&uid=${encodeURIComponent(currentUserId)}`;
+            
+            console.log("Calling referral function:", finalUrl);
 
-                    const data = await response.json();
-                    
-                    if (response.ok && data.success) {
-                        console.log("Referral reward awarded successfully!");
-                        await fetchProfileDataAndRefreshUI(); // Обновление UI, если нужно
-                    } else {
-                        console.error("Failed to award referral:", data.error || data.message);
-                    }
-                } catch (error) {
-                    console.error("Error calling referral function:", error);
+            const response = await fetch(finalUrl, {
+                method: 'GET',
+                // Мы УБРАЛИ заголовки Authorization, чтобы браузер не блокировал запрос
+                headers: {
+                    'Content-Type': 'application/json'
                 }
-            } else {
-                console.log("Skipping referral check: user is the referrer.");
+            });
+
+            const data = await response.json();
+            console.log("Server response:", data);
+
+            if (data.success) {
+                console.log("Success! Referral awarded.");
+                // Можно добавить: alert("Welcome! You've been referred.");
             }
+        } catch (error) {
+            console.error("Network error or block:", error);
         }
     }
+}
     // --- КОНЕЦ handleReferralLink ---
 
     // Функция для получения и обновления данных профиля (может быть полезна после рефералки)
