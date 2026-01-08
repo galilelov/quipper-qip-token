@@ -141,23 +141,34 @@
     }
 
     // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
-        async function handleReferralLink() {
+            async function handleReferralLink() {
         const urlParams = new URLSearchParams(window.location.search);
         const referrerId = urlParams.get('ref');
-        const currentUserId = userId; // Ваш текущий ID
+        const currentUserId = userId;
 
-        if (referrerId && currentUserId && referrerId !== currentUserId) {
-            // ВЫЗЫВАЕМ ФУНКЦИЮ БАЗЫ (RPC)
+        if (referrerId && currentUserId) {
+            if (referrerId === currentUserId) {
+                console.log("Self-referral ignored");
+                return;
+            }
+
+            // Всплывающее окно для теста
+            alert("Обнаружена ссылка! Пытаюсь начислить бонус...");
+
             const { data, error } = await supabase.rpc('award_referral_bonus', {
                 referrer_uuid: referrerId,
                 referred_uuid: currentUserId
             });
 
             if (error) {
-                console.error("Error:", error.message);
-            } else if (data && data.success) {
-                // Если сработало, обновляем цифры на экране
-                await fetchProfileDataAndRefreshUI();
+                alert("Ошибка базы данных: " + error.message);
+            } else if (data) {
+                if (data.success) {
+                    alert("УРА! Бонус сработал!");
+                    await fetchProfileDataAndRefreshUI();
+                } else {
+                    alert("Инфо: " + data.message);
+                }
             }
         }
     }
@@ -355,4 +366,5 @@
 </script>
 </body>
 </html>
+
 
