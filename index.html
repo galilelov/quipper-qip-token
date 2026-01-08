@@ -141,32 +141,27 @@
     }
 
     // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
-    async function handleReferralLink() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const referrerId = urlParams.get('ref');
-    const currentUserId = userId;
+        async function handleReferralLink() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const referrerId = urlParams.get('ref');
+        const currentUserId = userId; // Ваш текущий ID
 
-    if (referrerId && currentUserId && referrerId !== currentUserId) {
-        console.log("Attempting to award referral bonus...");
+        if (referrerId && currentUserId && referrerId !== currentUserId) {
+            // ВЫЗЫВАЕМ ФУНКЦИЮ БАЗЫ (RPC)
+            const { data, error } = await supabase.rpc('award_referral_bonus', {
+                referrer_uuid: referrerId,
+                referred_uuid: currentUserId
+            });
 
-        // ВЫЗЫВАЕМ ФУНКЦИЮ БАЗЫ ДАННЫХ (RPC)
-        const { data, error } = await supabase.rpc('award_referral_bonus', {
-            referrer_uuid: referrerId,
-            referred_uuid: currentUserId
-        });
-
-        if (error) {
-            console.error("RPC Error:", error.message);
-        } else {
-            console.log("Result:", data);
-            if (data.success) {
-                alert("You were referred! Bonus awarded to your friend.");
-                // Обновляем данные на экране
-                await fetchProfileDataAndRefreshUI(); 
+            if (error) {
+                console.error("Error:", error.message);
+            } else if (data && data.success) {
+                // Если сработало, обновляем цифры на экране
+                await fetchProfileDataAndRefreshUI();
             }
         }
     }
-}
+
     // --- КОНЕЦ handleReferralLink ---
 
     // Функция для получения и обновления данных профиля (может быть полезна после рефералки)
@@ -360,3 +355,4 @@
 </script>
 </body>
 </html>
+
