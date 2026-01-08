@@ -215,6 +215,10 @@ else { await supabase.from('profiles').insert([{ id: userId, tokens: 0, multipli
 
     // --- ГЛОБАЛЬНЫЕ ФУНКЦИИ (доступные из HTML) ---
     window.startFullGame = function() {
+        if (questions.length === 0) {
+            alert("Questions are still loading or failed to load. Please refresh.");
+            return;
+        }
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('play-screen').style.display = 'flex';
         startNewSet();
