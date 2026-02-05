@@ -122,23 +122,29 @@
 </div>
 
 <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+  // корректный ESM-бандл
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.34.0';
 
-    const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co';
-    const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU'; 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+  // Публичный ключ (anon/publishable). НЕ храните service_role в клиенте!
+  const supabaseUrl = 'https://gjfbsfkvyicvxqbzduud.supabase.co';
+  const supabaseKey = 'sb_publishable_-GJ_CJ49ApNejRTZjVUmeA_ncSAUhyU';
 
-    let userId, tokens = 0, multiplier = 1;
-    let questions = [], queue = [], curAns, timer, canClick = false;
-    let lives = 12, setCounter = 0, bonusAns = '';
+  // Создаём клиента и делаем его глобальным
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  window.supabase = supabase;
 
-    function shuffle(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
-        }
-        return arr;
-    }
+  // Переменные приложения (по желанию можно тоже сделать глобальными)
+  let userId, tokens = 0, multiplier = 1;
+  let questions = [], queue = [], curAns, timer, canClick = false;
+  let lives = 12, setCounter = 0, bonusAns = '';
+
+  function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+  }
 
     // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
                 async function handleReferralLink() {
@@ -405,3 +411,4 @@
 </script>
 </body>
 </html>
+
