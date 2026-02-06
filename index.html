@@ -147,60 +147,59 @@
   }
 
     // --- НОВАЯ ФУНКЦИЯ: handleReferralLink ---
-                async function handleReferralLink() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const referrerId = urlParams.get('ref'); // ID того, кто пригласил
-        const currentUserId = userId; // ID текущего пользователя (того, кто пришел по ссылке)
+  async function handleReferralLink() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const referrerId = urlParams.get('ref'); // ID того, кто пригласил
+      const currentUserId = userId; // ID текущего пользователя (того, кто пришел по ссылке)
 
-        console.log(`handleReferralLink check: referrerId=${referrerId}, currentUserId=${currentUserId}`);
+      console.log(`handleReferralLink check: referrerId=${referrerId}, currentUserId=${currentUserId}`);
 
-        // Условия для выполнения:
-        // 1. Оба ID должны быть получены
-        // 2. ID приглашающего и приглашенного не должны совпадать (чтобы не приглашать самого себя)
-        if (referrerId && currentUserId && referrerId !== currentUserId) {
-            
-            alert(`Обнаружена реферальная ссылка! Пытаюсь начислить бонус.\nПриглашающий: ${referrerId}\nПриглашенный: ${currentUserId}`);
+      // Условия для выполнения:
+      if (referrerId && currentUserId && referrerId !== currentUserId) {
 
-            try {
-                // ВЫЗЫВАЕМ ФУНКЦИЮ БАЗЫ ДАННЫХ (RPC)
-                // Параметры должны ТОЧНО совпадать с теми, что ожидает SQL-функция (referrer_uuid, referred_uuid)
-                const { data, error } = await supabase.rpc('award_referral_bonus', {
-                    referrer_uuid: referrerId,
-                    referred_uuid: currentUserId
-                });
+          alert(`Обнаружена реферальная ссылка! Пытаюсь начислить бонус.
+Приглашающий: ${referrerId}
+Приглашенный: ${currentUserId}`);
 
-                if (error) {
-                    alert("Ошибка при вызове базы данных: " + error.message);
-                    console.error("RPC Error:", error.message);
-                } else if (data) {
-                    console.log("RPC Result:", data);
-                    if (data.success) {
-                        alert("Бонус успешно начислен!");
-                        // Обновляем данные на экране, чтобы игрок увидел изменения
-                        await fetchProfileDataAndRefreshUI(); 
-                    } else {
-                        // Если data.success = false, выводим сообщение от SQL-функции
-                        alert("Результат: " + data.message);
-                    }
-                } else {
-                    // Если data пустой, а ошибки нет (маловероятно, но для надежности)
-                    alert("Неожиданный результат от базы данных. Проверьте логи.");
-                    console.error("Unexpected RPC result: data is empty, no error.");
-                }
-            } catch (callError) {
-                // Обработка ошибок, которые могут возникнуть до получения ответа от базы
-                alert("Критическая ошибка при вызове базы: " + callError.message);
-                console.error("Critical error during RPC call:", callError.message);
-            }
-        } else {
-            // Сообщения, если условия не выполнены
-            if (!referrerId) console.log("handleReferralLink skipped: referrer ID is missing.");
-            if (!currentUserId) console.log("handleReferralLink skipped: current user ID is missing.");
-            if (referrerId === currentUserId) console.log("handleReferralLink ignored: self-referral.");
-        }
-    }
+          try {
+              // ВЫЗЫВАЕМ ФУНКЦИЮ БАЗЫ ДАННЫХ (RPC)
+              const { data, error } = await supabase.rpc('award_referral_bonus', {
+                  referrer_uuid: referrerId,
+                  referred_uuid: currentUserId
+              });
 
-    // --- КОНЕЦ handleReferralLink ---
+              if (error) {
+                  alert("Ошибка при вызове базы данных: " + error.message);
+                  console.error("RPC Error:", error.message);
+              } else if (data) {
+                  console.log("RPC Result:", data);
+                  if (data.success) {
+                      alert("Бонус успешно начислен!");
+                      // Обновляем данные на экране, чтобы игрок увидел изменения
+                      if (typeof fetchProfileDataAndRefreshUI === 'function') {
+                          await fetchProfileDataAndRefreshUI();
+                      }
+                  } else {
+                      // Если data.success = false, выводим сообщение от SQL-функции
+                      alert("Результат: " + data.message);
+                  }
+              } else {
+                  alert("Неожиданный результат от базы данных. Проверьте логи.");
+                  console.error("Unexpected RPC result: data is empty, no error.");
+              }
+          } catch (callError) {
+              alert("Критическая ошибка при вызове базы: " + callError.message);
+              console.error("Critical error during RPC call:", callError.message);
+          }
+      } else {
+          if (!referrerId) console.log("handleReferralLink skipped: referrer ID is missing.");
+          if (!currentUserId) console.log("handleReferralLink skipped: current user ID is missing.");
+          if (referrerId === currentUserId) console.log("handleReferralLink ignored: self-referral.");
+      }
+  }
+  // Делаем функцию глобальной, если вы используете вызов извне (например, window.setTimeout -> handleReferralLink)
+  window.handleReferralLink = handleReferralLink;
+  // --- КОНЕЦ handleReferralLink ---
 
     // Функция для получения и обновления данных профиля (может быть полезна после рефералки)
     async function fetchProfileDataAndRefreshUI() {
@@ -411,4 +410,5 @@
 </script>
 </body>
 </html>
+
 
